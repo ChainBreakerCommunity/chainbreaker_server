@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+<head>
+    <link href="{{ url_for('static', filename='../static/assets/vendor/bootstrap/css/bootstrap.min.css', _external=True) }}" rel="stylesheet"></link>
+    <link href="{{ url_for('static', filename='../static/assets/css/style.css', _external=True) }}" rel="stylesheet"></link>
+</head>
+
+<body style="background-color: #37517e;">
+    <main>
+        <!-- ======= Hero Section ======= -->
+        <section id="hero" class="d-flex align-items-center">
+
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-7 d-flex flex-column justify-content-center pt-4 pt-lg-0 order-2 order-lg-1"
+                        data-aos="fade-up" data-aos-delay="200">
+                        <div class = "d-flex align-items-center">
+                            <img class = "me-2" src="cid:chainlogo" width="40px" height="40px" style = "position: relative; bottom:  5px;"/>
+                            <h1 style = "font-size: 40px !important;">Welcome to ChainBreaker</h1>
+                        </div>
+                        <p style = "color: #fff;">
+                            <strong style="color:#47b2e4;">{name}</strong>, we want to welcome you to the Chainbreaker
+                            Community.
+                            We are team of academics, data scientists and human trafficking experts
+                            focused
+                            on collecting data from several online sexual services to combat human
+                            trafficking.
+
+                            <br><br>
+                            <u>Here are your API credentials:</u>
+                            <br><br>
+                            Email: <strong style="color:#47b2e4;">{email}</strong>
+                            <br>
+                            Password: <strong style="color:#47b2e4;">{password}</strong>
+                            <br><br>
+                            We highly recommend you to change your password as soon as possible. To make
+                            this, and
+                            to learn more about how you can access our data, press the next button.
+
+                        </p>
+                        <div class="d-flex justify-content-center justify-content-lg-start">
+                            <a href="{link}" class="btn-get-started scrollto">Learn more</a>
+                            <!--
+            <a href="https://www.youtube.com/watch?v=jDDaplaOz7Q" class="glightbox btn-watch-video"><i class="bi bi-play-circle"></i><span>Watch Video</span></a>
+            -->
+                        </div>
+                    </div>
+                    <div class="col-lg-5 order-1 order-lg-2 hero-img" data-aos="zoom-in" data-aos-delay="200">
+                        <img src="cid:communitylogo" class="img-fluid animated" alt="">
+                    </div>
+                </div>
+            </div>
+
+        </section><!-- End Hero -->
+    </main>
+</body>
+
+</html>
