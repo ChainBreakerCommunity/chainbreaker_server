@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 #from sqlalchemy import create_engine
 import os
-from templates import welcome
+from templates import welcome, recover
 import uuid
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
@@ -12,6 +12,9 @@ import datetime
 from functools import wraps
 import random
 import codecs
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy import or_, and_
+import json
 
 app = Flask(__name__, static_url_path='')
 def get_resource_as_string(name, charset='utf-8'):
@@ -22,6 +25,7 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 app.config['CORS_HEADERS'] = 'Content-Type' # Set headers.
 app.config["SECRET_KEY"] = "u[NDYu>N:~)93-#u"
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://reader:@6c7J-y7Sf)33-W@juanchobanano.com:3306/chainbreaker?charset=utf8mb4"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -36,6 +40,32 @@ mail = Mail(app)
 # On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
 # When running this app on the local machine, default the port to 8000
 port = int(os.getenv('PORT', 8000))
+
+permission_level = {
+    "reader": 1,
+    "admin": 2
+}
+
+"""
+Implement AlchemyEncoder class.
+"""
+class AlchemyEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj.__class__, DeclarativeMeta):
+            # an SQLAlchemy class
+            fields = {}
+            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
+                data = obj.__getattribute__(field)
+                try:
+                    json.dumps(data, ensure_ascii=False).encode("utf8") # this will fail on non-encodable values, like other classes
+                    fields[field] = data
+                except TypeError:
+                    fields[field] = None
+            # a json-encodable dict
+            return fields
+
+        return json.JSONEncoder.default(self, obj)
 
 """
 Return the frontend of the application.
@@ -60,6 +90,51 @@ class User(db.Model):
         self.password = password
         self.permission = permission
 
+"""
+Define Ad Model
+"""
+class Ad(db.Model):
+    id_ad = db.Column(db.Integer, primary_key=True)
+    language = db.Column(db.String(20))
+    link = db.Column(db.String(100))
+    id_page = db.Column(db.Integer)
+    title = db.Column(db.String(100))
+    text = db.Column(db.String(10000))
+    category = db.Column(db.String(20))
+    post_date = db.Column(db.DateTime(10))
+    verified_ad = db.Column(db.Boolean())
+    no_prepayment = db.Column(db.Boolean())
+    promoted_ad = db.Column(db.Boolean())
+    has_external_link = db.Column(db.Boolean())
+    external_website = db.Column(db.String(100))
+    reviews_website = db.Column(db.String(100))
+    website = db.Column(db.String(20))
+    extract_date = db.Column(db.DateTime(10))
+
+
+"""
+Define Glossary Model
+"""
+class Glossary(db.Model):
+    id_term = db.Column(db.Integer, primary_key=True)
+    domain = db.Column(db.String(20))
+    term = db.Column(db.String(30))
+    definition = db.Column(db.String(1000))
+
+"""
+Define Keyword Model
+"""
+class Keyword(db.Model):
+    id_keyword = db.Column(db.Integer, primary_key=True)
+    language = db.Column(db.String(20))
+    keyword = db.Column(db.String(30))
+    english_translation = db.Column(db.String(30))
+    meaning = db.Column(db.String(1000))
+    age_flag = db.Column(db.Boolean())
+    trafficking_flag = db.Column(db.Boolean())
+    movement_flag = db.Column(db.Boolean())
+
+
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -69,8 +144,8 @@ def token_required(f):
         if not token:
             return jsonify({'message' : 'Token is missing!'}), 401
         try: 
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["SHA256"])
-            current_user = User.query.filter_by(public_id=data['id_user']).first()
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            current_user = User.query.filter_by(email=data['email']).first()
         except:
             return jsonify({'message' : 'Token is invalid!'}), 401
         return f(current_user, *args, **kwargs)
@@ -80,23 +155,24 @@ def token_required(f):
 This functions recieves an email and a password
 and returns an authorization token.
 """
-@app.route('/api/user/login')
+@app.route('/api/user/login', methods = ["POST", "GET"])
 def login():
-    auth = request.authorization
-    if not auth or not auth.username or not auth.password:
+    auth = request.values
+    if not auth or not auth["email"] or not auth["password"] or not auth["expiration"]:
         return make_response('Bad request', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
-    user = User.query.filter_by(name=auth.email).first()
+    user = User.query.filter_by(email=auth["email"]).first()
     if not user:
         return make_response('User does not exist', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
-    if check_password_hash(user.password, auth.password):
-        token = jwt.encode({'id_user' : user.id_user, "email": user.email, "permission": user.permission, 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
-        return jsonify({'token' : token.decode('UTF-8')})
+    if check_password_hash(user.password, auth["password"]):
+        minutes = max(int(auth["expiration"]), 999999)
+        token = jwt.encode({'id_user' : user.id_user, "email": user.email, "permission": user.permission, 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes = minutes)}, app.config['SECRET_KEY'], algorithm = "HS256")
+        return jsonify({'name': user.name, 'email': user.email, 'permission': user.permission, 'token' : token})
     return make_response('Could not verify', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
 
 """
 This functions allows administrators to create new users.
 """
-@app.route('/api/user/create_user', methods=['POST'])
+@app.route('/api/user/create_user', methods=['PUT'])
 #@token_required
 def create_user():
     #if not current_user.permission == "admin":
@@ -111,7 +187,7 @@ def create_user():
     name = data["name"]
     email = data["email"]
     permission = data["permission"]
-    link = "https://chainbreaker-7e0c9.web.app/"
+    link = "https://juanchobanano.com"
 
     hashed_password = generate_password_hash(random_password, method='sha256')
     new_user = User(name = name,
@@ -126,12 +202,11 @@ def create_user():
             msg = Message(subject = "Welcome to ChainBreaker Community!", 
                           recipients = [data["email"]], 
                           sender = app.config['MAIL_USERNAME'])
-            template = render_template("welcome.html") #welcome(name, email[0: email.find("@")] + " (" + email[email.find("@"): ] + ")", random_password, link)
+            #render_template("welcome.html")
+            template = welcome(name, email[0: email.find("@")] + " (" + email[email.find("@"):  ] + ")", random_password, link)
             msg.html = template
             msg.attach("chain-white.png", "image/png", open("static/images/chain-white.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<chainlogo>'],]) 
             msg.attach("hero-img.png", "image/png", open("static/images/hero-img.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
-            #msg.attach("boostrap.min.css", "css", open("static/assets/vendor/bootstrap/css/bootstrap.min.css", "rb").read(), disposition="inline", headers=[["Content-ID",'<boostrap>'], ])
-            #msg.attach("style.css", "css", open("static/assets/css/style.css", "rb").read(), disposition="inline", headers=[["Content-ID",'<styles>'], ])
             conn.send(msg)
 
     return jsonify({'message' : 'New user created!'})
@@ -142,25 +217,137 @@ This function allows users to change their password.
 @app.route("/api/user/change_password", methods=["PUT"])
 @token_required
 def change_password(current_user):
-    data = request.get_json()
-    if check_password_hash(current_user.password, data["old_password"]):
+    data = request.values
+    if data["recover_password"] == "False":
+        if check_password_hash(current_user.password, data["old_password"]):
+            hashed_password = generate_password_hash(data['new_password'], method='sha256')
+            current_user.password = hashed_password
+            db.session.commit()
+            return jsonify({'message' : 'Password updated!'}), 200
+    else: 
         hashed_password = generate_password_hash(data['new_password'], method='sha256')
         current_user.password = hashed_password
         db.session.commit()
-        return jsonify({'message' : 'Password updated!'}), 200
+        return jsonify({'message' : 'Password changed!'}), 200
     return jsonify({'message' : 'Password could not be updated!'}), 400
 
 """
-This functions allows users to get data from ChainBreaker Database.
+This functions allows administrators to create new users.
 """
-@app.route('/api/get_data', methods=['POST'])
+@app.route('/api/user/recover_password', methods=['POST'])
+def recover_password():
+    data = request.values
+    email = data["email"]
+    link = "https://juanchobanano.com"
+    user = User.query.filter_by(email = email).first()
+    token = jwt.encode({'id_user' : user.id_user, "email": user.email, "permission": user.permission, 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes = 10)}, app.config['SECRET_KEY'], algorithm = "HS256")
+
+    with app.app_context():
+        with mail.connect() as conn:
+            msg = Message(subject = "Chainbreaker Password Recovery", 
+                          recipients = [data["email"]], 
+                          sender = app.config['MAIL_USERNAME'])
+            template = recover(user.name, email[0: email.find("@")] + " (" + email[email.find("@"): ] + ")", token, link)
+            msg.html = template
+            msg.attach("chain-white.png", "image/png", open("static/images/chain-white.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<chainlogo>'],]) 
+            msg.attach("why-us.png", "image/png", open("static/images/why-us.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
+            conn.send(msg)
+
+    return jsonify({'message' : 'We have sent you a recovery e-mail to' + email + '! You have 10 minutes to change your password.'})
+
+"""
+This functions allows users to get data from ChainBreaker Database.
+# https://flask-sqlalchemy.palletsprojects.com/en/2.x/models/
+"""
+@app.route('/api/data/get_ads', methods=['POST', "GET"])
 @token_required
-def get_data(current_user):
-    data = request.get_json()
+def get_ads(current_user):
+    level = permission_level[current_user.permission]
+    if level == 0:
+        return jsonify({'message' : 'Cannot perform that function!'})
+    data = request.values
+    filtered_args = {k: v for k, v in data.items() if v is not ""}
+    filters = [getattr(Ad, attribute) == value for attribute, value in filtered_args.items()]
+    ads = Ad.query.filter(and_(*filters)).all()
 
+    output = list()
+    for ad in ads: 
+        ad_data = {}
+        ad_data["id_ad"] = ad.id_ad
+        ad_data["language"] = ad.language
+        ad_data["link"] = ad.link
+        ad_data["id_page"] = ad.id_page
+        ad_data["title"] = ad.title
+        ad_data["text"] = ad.text 
+        ad_data["category"] = ad.category 
+        ad_data["post_date"] = ad.post_date
+        ad_data["verified_ad"] = ad.verified_ad
+        ad_data["no_prepayment"] = ad.no_prepayment 
+        ad_data["promoted_ad"] = ad.promoted_ad 
+        ad_data["has_external_link"] = ad.has_external_link 
+        ad_data["external_website"] = ad.external_website
+        ad_data["reviews_website"] = ad.reviews_website
+        ad_data["website"] = ad.website 
+        ad_data["extract_date"] = ad.extract_date 
+        output.append(ad_data)
+    return jsonify({"ads": output})
 
+"""
+This functions allows users to get the ChainBreaker Human Trafficking Glossary.
+"""
+@app.route('/api/data/get_glossary', methods=['POST', "GET"])
+@token_required
+def get_glossary(current_user):
+    level = permission_level[current_user.permission]
+    print("level: ", level >= 1)
+    if level == 0:
+        return jsonify({'message' : 'Cannot perform that function!'})
+    data = request.values
+    domain = data["domain"]
+    if domain != "":
+        glossary = Glossary.query.filter_by(domain=domain).all()
+    else: 
+        glossary = Glossary.query.all()
 
-    return {"hello": "world"}
+    output = list()
+    for term in glossary:
+        term_data = {}
+        term_data["id_term"] = term.id_term
+        term_data["domain"] = term.domain 
+        term_data["term"] = term.term 
+        term_data["definition"] = term.definition 
+        output.append(term_data)
+    return jsonify({"glossary": output})
+
+"""
+This functions allows users to get the ChainBreaker Human Trafficking Keywords.
+"""
+@app.route('/api/data/get_keywords', methods=['POST', "GET"])
+@token_required
+def get_keywords(current_user):
+    level = permission_level[current_user.permission]
+    if level == 0:
+        return jsonify({'message' : 'Cannot perform that function!'})
+    data = request.values
+    language = data["language"]
+    if language != "":
+        keywords = Keyword.query.filter_by(language = language).all()
+    else: 
+        keywords = Keyword.query.all()
+
+    output = list()
+    for keyword in keywords:
+        keyword_data = {}
+        keyword_data["id_keyword"] = keyword.id_keyword 
+        keyword_data["language"] = keyword.language 
+        keyword_data["keyword"] = keyword.keyword
+        keyword_data["english_translation"] = keyword.english_translation 
+        keyword_data["meaning"] = keyword.meaning 
+        keyword_data["age_flag"] = keyword.age_flag 
+        keyword_data["trafficking_flag"] = keyword.trafficking_flag
+        keyword_data["movement_flag"] = keyword.movement_flag 
+        output.append(keyword_data)
+    return jsonify({"keywords": output})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port, debug=True)

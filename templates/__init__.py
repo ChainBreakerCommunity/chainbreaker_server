@@ -1,1 +1,1 @@
-from .template import welcome
+from .template import welcome, recover
