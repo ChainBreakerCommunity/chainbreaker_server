@@ -30,12 +30,13 @@ db = SQLAlchemy(app)
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = "alephmind.ai@gmail.com"
-app.config['MAIL_PASSWORD'] = "Ns16mxIX"
+app.config['MAIL_USERNAME'] = "chainbreakerinfo@gmail.com"
+app.config['MAIL_PASSWORD'] = "chain#6125"
 app.config['MAIL_USE_TLS'] = False 
 app.config['MAIL_USE_TLS'] = True 
 mail = Mail(app)
 
+app.config["TUTORIAL_API"] = "https://drive.google.com/file/d/1yQItms-GYHFbJhnMNKNstfFL8B6MLqZX/view?usp=sharing"
 
 # On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
 # When running this app on the local machine, default the port to 8000
@@ -105,7 +106,6 @@ class Ad(db.Model):
     verified_ad = db.Column(db.Boolean())
     no_prepayment = db.Column(db.Boolean())
     promoted_ad = db.Column(db.Boolean())
-    has_external_link = db.Column(db.Boolean())
     external_website = db.Column(db.String(100))
     reviews_website = db.Column(db.String(100))
     website = db.Column(db.String(20))
@@ -152,6 +152,13 @@ def token_required(f):
     return decorated
 
 """
+ChainBreaker IBM Stauts
+"""
+@app.route("/api/status", methods = ["GET"])
+def status():
+    return jsonify({'status' : 200})
+
+"""
 This functions recieves an email and a password
 and returns an authorization token.
 """
@@ -187,7 +194,7 @@ def create_user():
     name = data["name"]
     email = data["email"]
     permission = data["permission"]
-    link = "https://juanchobanano.com"
+    link = app.config["TUTORIAL_API"]
 
     hashed_password = generate_password_hash(random_password, method='sha256')
     new_user = User(name = name,
@@ -238,7 +245,7 @@ This functions allows administrators to create new users.
 def recover_password():
     data = request.values
     email = data["email"]
-    link = "https://juanchobanano.com"
+    link = app.config["TUTORIAL_API"]
     user = User.query.filter_by(email = email).first()
     token = jwt.encode({'id_user' : user.id_user, "email": user.email, "permission": user.permission, 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes = 10)}, app.config['SECRET_KEY'], algorithm = "HS256")
 
@@ -266,7 +273,7 @@ def get_ads(current_user):
     if level == 0:
         return jsonify({'message' : 'Cannot perform that function!'})
     data = request.values
-    filtered_args = {k: v for k, v in data.items() if v is not ""}
+    filtered_args = {k: v for k, v in data.items() if v != ""}
     filters = [getattr(Ad, attribute) == value for attribute, value in filtered_args.items()]
     ads = Ad.query.filter(and_(*filters)).all()
 
@@ -284,7 +291,6 @@ def get_ads(current_user):
         ad_data["verified_ad"] = ad.verified_ad
         ad_data["no_prepayment"] = ad.no_prepayment 
         ad_data["promoted_ad"] = ad.promoted_ad 
-        ad_data["has_external_link"] = ad.has_external_link 
         ad_data["external_website"] = ad.external_website
         ad_data["reviews_website"] = ad.reviews_website
         ad_data["website"] = ad.website 
