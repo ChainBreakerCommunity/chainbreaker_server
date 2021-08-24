@@ -24,7 +24,7 @@ app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
 app.config['CORS_HEADERS'] = 'Content-Type' # Set headers.
 app.config["SECRET_KEY"] = "u[NDYu>N:~)93-#u"
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://reader:@6c7J-y7Sf)33-W@juanchobanano.com:3306/chainbreaker?charset=utf8mb4"
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://reader:GaJ4a54RvaM94k4a@juanchobanano.com:3306/chainbreaker?charset=utf8mb4"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
