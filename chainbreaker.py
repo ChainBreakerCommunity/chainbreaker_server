@@ -119,13 +119,52 @@ class Ad(db.Model):
 Define Location Model
 """
 class Location(db.Model):
-    pass
+    id_location = db.Column(db.Integer, primary_key=True)
+    id_ad = db.Column(db.Integer)
+    country = db.Column(db.String(30))
+    region = db.Column(db.String(30))
+    city = db.Column(db.String(30))
+    place = db.Column(db.String(30))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    zoom = db.Column(db.Integer)
+
+    def __init__(self, id_ad, country, region, city, place,
+                 latitude, longitude, zoom):
+        self.id_ad = id_ad
+        self.country = country
+        self.region = region
+        self.city = city
+        self.place = place
+        self.latitude = latitude
+        self.longitude = longitude
+        self.zoom = zoom
 
 """
 Define Phone Model
 """
 class Phone(db.Model):
-    pass
+    id_phone = db.Column(db.Integer, primary_key=True)
+    id_ad = db.Column(db.Integer)
+    phone = db.Column(db.Integer)
+    times_searched = db.Column(db.Integer)
+    num_complaints = db.Column(db.Integer)
+    first_service_provider = db.Column(db.String(20))
+    trust = db.Column(db.String(20))
+    frequent_report = db.Column(db.String(20))
+    processed = db.Column(db.Boolean)
+    
+    def __init__(self, id_ad, phone, times_searched, 
+                num_complaints, first_service_provider, 
+                trust, frequent_report, processed):
+        id_ad = id_ad
+        phone = phone 
+        times_searched = times_searched
+        num_complaints = num_complaints
+        first_service_provider = first_service_provider
+        trust = trust
+        frequent_report = frequent_report
+        processed = processed
 
 """
 Define Feature Model
