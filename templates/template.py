@@ -94,7 +94,7 @@ def welcome(name, email, password, link):
                                                 <span style = "color: #fff">
                                                 We highly recommend you to change your password as soon as possible. To make
                                                 this, and
-                                                to learn more about how you can access our data, press the next button.
+                                                to learn more about how you can access our data, press the next button:
                                                 </span>
                                             </p>
                                             <a href="{link}" style="
@@ -229,7 +229,7 @@ def recover(name, email, token, link):
                                                     <span style = "color: #fff;">Token:</span> <strong style="color:#47b2e4;">{token}</strong>
                                                     <br><br>
                                                     <span style = "color: #fff">
-                                                    and follow the tutorial you will find here:
+                                                    and follow the tutorial you will find by here:
                                                     </span>
                                                 </p>
                                                 <a href="{link}" style="

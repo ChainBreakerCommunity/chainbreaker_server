@@ -36,7 +36,7 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_TLS'] = True 
 mail = Mail(app)
 
-app.config["TUTORIAL_API"] = "https://drive.google.com/file/d/1yQItms-GYHFbJhnMNKNstfFL8B6MLqZX/view?usp=sharing"
+app.config["TUTORIAL_API"] = "https://chainbreaker.community"#"https://drive.google.com/file/d/1yQItms-GYHFbJhnMNKNstfFL8B6MLqZX/view?usp=sharing"
 
 # On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
 # When running this app on the local machine, default the port to 8000
@@ -44,29 +44,11 @@ port = int(os.getenv('PORT', 8000))
 
 permission_level = {
     "reader": 1,
-    "admin": 2
+    "labeler": 2,
+    "scraper": 3,
+    "admin": 4
 }
 
-"""
-Implement AlchemyEncoder class.
-"""
-class AlchemyEncoder(json.JSONEncoder):
-
-    def default(self, obj):
-        if isinstance(obj.__class__, DeclarativeMeta):
-            # an SQLAlchemy class
-            fields = {}
-            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
-                data = obj.__getattribute__(field)
-                try:
-                    json.dumps(data, ensure_ascii=False).encode("utf8") # this will fail on non-encodable values, like other classes
-                    fields[field] = data
-                except TypeError:
-                    fields[field] = None
-            # a json-encodable dict
-            return fields
-
-        return json.JSONEncoder.default(self, obj)
 
 """
 Return the frontend of the application.
@@ -106,10 +88,56 @@ class Ad(db.Model):
     verified_ad = db.Column(db.Boolean())
     no_prepayment = db.Column(db.Boolean())
     promoted_ad = db.Column(db.Boolean())
+    email = db.Column(db.String(100))
     external_website = db.Column(db.String(100))
     reviews_website = db.Column(db.String(100))
     website = db.Column(db.String(20))
     extract_date = db.Column(db.DateTime(10))
+
+    def __init__(self, language, link, id_page, title, text, 
+                category, post_date, verified_ad, no_prepayment, 
+                promoted_ad, extract_date, website, email = None, 
+                external_website = None, reviews_website = None):
+
+        self.language = language
+        self.link = link
+        self.id_page = id_page
+        self.title = title
+        self.text = text
+        self.category = category
+        self.post_date = post_date
+        self.verified_ad = verified_ad
+        self.no_prepayment = no_prepayment
+        self.promoted_ad = promoted_ad
+        self.extract_date = extract_date
+        self.website = website
+        self.email = email
+        self.external_website = external_website
+        self.reviews_website = reviews_website
+
+"""
+Define Location Model
+"""
+class Location(db.Model):
+    pass
+
+"""
+Define Phone Model
+"""
+class Phone(db.Model):
+    pass
+
+"""
+Define Feature Model
+"""
+class Feature(db.Model):
+    pass
+
+"""
+Define Whatsapp Model
+"""
+class WhatsApp(db.Model):
+    pass
 
 
 """
@@ -180,10 +208,10 @@ def login():
 This functions allows administrators to create new users.
 """
 @app.route('/api/user/create_user', methods=['PUT'])
-#@token_required
-def create_user():
-    #if not current_user.permission == "admin":
-    #    return jsonify({'message' : 'Cannot perform that function!'})
+@token_required
+def create_user(current_user):
+    if not current_user.permission == "admin":
+        return jsonify({'message' : 'Cannot perform that function!'})
 
     password_length = 5
     possible_characters = "abcdefghijklmnopqrstuvwxyz1234567890"
@@ -275,7 +303,7 @@ def get_ads(current_user):
     data = request.values
     filtered_args = {k: v for k, v in data.items() if v != ""}
     filters = [getattr(Ad, attribute) == value for attribute, value in filtered_args.items()]
-    ads = Ad.query.filter(and_(*filters)).all()
+    ads = Ad.query.filter(and_(*filters)).limit(200).all()
 
     output = list()
     for ad in ads: 
@@ -291,13 +319,14 @@ def get_ads(current_user):
         ad_data["verified_ad"] = ad.verified_ad
         ad_data["no_prepayment"] = ad.no_prepayment 
         ad_data["promoted_ad"] = ad.promoted_ad 
+        ad_data["email"] = ad.email
         ad_data["external_website"] = ad.external_website
         ad_data["reviews_website"] = ad.reviews_website
         ad_data["website"] = ad.website 
         ad_data["extract_date"] = ad.extract_date 
         output.append(ad_data)
     return jsonify({"ads": output})
-
+    
 """
 This functions allows users to get the ChainBreaker Human Trafficking Glossary.
 """
@@ -354,6 +383,108 @@ def get_keywords(current_user):
         keyword_data["movement_flag"] = keyword.movement_flag 
         output.append(keyword_data)
     return jsonify({"keywords": output})
+
+"""
+This function allow writers to add new advertisments to ChainBreaker DB.
+"""
+@app.route('/api/scraper/insert_ad', methods=['POST', "GET"])
+@token_required
+def insert_ad(current_user):
+    
+    level = permission_level[current_user.permission]
+    if level >= 3:
+        return jsonify({'message' : 'Cannot perform that function!'})
+    data = request.values
+
+
+    # language
+    # link
+    # id_page
+    # title
+    # text
+    # category
+    # post_date
+    # verified_ad
+    # no_prepayment
+    # promoted_ad
+    # external_website
+    # email
+    # reviews_website
+    # website
+    # extract_date
+
+    # comment
+
+    # country
+    # region
+    # city
+    # place
+    # latitude
+    # longitude
+    # zoom
+
+    # age
+    # nationality
+    # ethnicity
+    # availability
+    # weight
+    # height
+    # hair color
+    # eyes color
+    # price
+
+    # whatsapp
+
+    return jsonify({"status": 200})
+    
+"""
+This function recieves a name location and returns a GPS location with zoom variable.
+"""
+@app.route('/api/scraper/get_gps', methods=['POST', "GET"])
+@token_required
+def get_gps(current_user):
+    level = permission_level[current_user.permission]
+    if level >= 3:
+        return jsonify({'message' : 'Cannot perform that function!'})
+    
+    data = request.values
+    location = data["location"]
+    latitude, longitude, zoom = [None, None, None]
+
+    gps_data = {}
+    gps_data["latitude"] = latitude
+    gps_data["longitude"] = longitude
+    gps_data["zoom"] = zoom
+    return jsonify({"gps_data": gps_data})
+
+"""
+This function recieves a phonumber and return different variables related with it.
+"""
+@app.rout("/api/scraper/get_phone_info", mehotds = ["POST", "GET"])
+@token_required
+def get_phone_info(current_user):
+    level = permission_level[current_user.permission]
+    if level >= 3:
+        return jsonify({'message' : 'Cannot perform that function!'})
+
+    data = request.values
+    phone = data["phone"]
+
+    times_searched, num_complaints, first_service_provider, trust, frequent_report = \
+        [None, None, None, None, None]
+
+    phone_data = {}
+    phone_data["times_searched"] = times_searched
+    phone_data["num_complaints"] = num_complaints
+    phone_data["first_service_provider"] = first_service_provider
+    phone_data["trust"] = trust
+    phone_data["frequent_report"] = frequent_report
+
+    return jsonify({'phone_data': phone_data})
+
+"""
+Machine Learning models. (repo distinto)
+"""
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port, debug=True)

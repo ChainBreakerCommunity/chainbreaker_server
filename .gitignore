@@ -1,2 +1,6 @@
 # Ignore environment folder.
+# Ignore environment.
 appenv
+
+# Ignore test file.
+test.py
