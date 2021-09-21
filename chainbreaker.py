@@ -1,4 +1,6 @@
+from types import CoroutineType
 from flask import Flask, request, jsonify, make_response, render_template
+from sqlalchemy.sql.expression import select
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
@@ -13,7 +15,8 @@ from functools import wraps
 import random
 import codecs
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy import or_, and_
+from sqlalchemy.orm import Session, backref, column_property, relation
+from sqlalchemy import or_, and_, func
 import json
 
 app = Flask(__name__, static_url_path='')
@@ -37,7 +40,9 @@ app.config['MAIL_USE_TLS'] = True
 mail = Mail(app)
 
 app.config["TUTORIAL_API"] = "https://chainbreaker.community"#"https://drive.google.com/file/d/1yQItms-GYHFbJhnMNKNstfFL8B6MLqZX/view?usp=sharing"
-app.config["DATA_VERSION"] = "1"
+app.config["DATA_VERSION"] = "2"
+app.config["MAX_ADS_PER_REQUEST"] = 500
+app.config["SHOP_AND_SERVICES_CATEGORIES"] = ["servicios-virtuales", "sex-shop"]
 # On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
 # When running this app on the local machine, default the port to 8000
 port = int(os.getenv('PORT', 8000))
@@ -50,6 +55,31 @@ permission_level = {
 }
 
 """
+Get size of object.
+"""
+def getsize(obj):
+    from types import ModuleType, FunctionType
+    from gc import get_referents
+    import sys
+
+    BLACKLIST = type, ModuleType, FunctionType
+    """sum size of object & members."""
+    if isinstance(obj, BLACKLIST):
+        raise TypeError('getsize() does not take argument of type: '+ str(type(obj)))
+    seen_ids = set()
+    size = 0
+    objects = [obj]
+    while objects:
+        need_referents = []
+        for obj in objects:
+            if not isinstance(obj, BLACKLIST) and id(obj) not in seen_ids:
+                seen_ids.add(id(obj))
+                size += sys.getsizeof(obj)
+                need_referents.append(obj)
+        objects = get_referents(*need_referents)
+    return size
+
+"""
 Return the frontend of the application.
 """
 @app.route('/')
@@ -60,6 +90,7 @@ def root():
 Define User Model
 """
 class User(db.Model):
+    __tablename__ = "user"
     id_user = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
     email = db.Column(db.String(50))
@@ -72,10 +103,34 @@ class User(db.Model):
         self.password = password
         self.permission = permission
 
+
+"""
+Define GeoLocation Model
+class GeoLocation(db.Model):
+    __tablename__ = "geolocation"
+    id_geolocation = id_ad = db.Column(db.Integer, primary_key=True)
+    place_id = id_ad = db.Column(db.Integer)
+    country = db.Column(db.String(30))
+    country_code = db.Column(db.String(5))
+    region = db.Column(db.String(30))
+    state = db.Column(db.String(30))
+    city = db.Column(db.String(30))
+    district = db.Column(db.String(30))
+    neighborhood = db.Column(db.String(30))
+    address = db.Column(db.String(100))
+    location_type = db.Column(db.String(20))
+    street = db.Column(db.String(50))
+    suburb = db.Column(db.String(50))
+    lat = db.Column(db.Float)
+    lon = db.Column(db.Float)
+    confidence = db.Column(db.Float)
+"""
+
 """
 Define Ad Model
 """
 class Ad(db.Model):
+    __tablename__ = "ad"
     id_ad = db.Column(db.Integer, primary_key=True)
     data_version = db.Column(db.Integer)
     author = db.Column(db.String(30))
@@ -85,11 +140,12 @@ class Ad(db.Model):
     title = db.Column(db.String(100))
     text = db.Column(db.String(10000))
     category = db.Column(db.String(20))
-    post_date = db.Column(db.DateTime(10))
+    first_post_date = db.Column(db.DateTime(10))
     extract_date = db.Column(db.DateTime(10))
     website = db.Column(db.String(20))
 
     whatsapp = db.Column(db.Integer)
+    email = db.Column(db.String(100))
     verified_ad = db.Column(db.Boolean())
     prepayment = db.Column(db.Boolean())
     promoted_ad = db.Column(db.Boolean())
@@ -97,8 +153,8 @@ class Ad(db.Model):
     reviews_website = db.Column(db.String(100))
 
     def __init__(self, data_version, author, language, link, id_page, title, text, 
-                category, post_date, extract_date, website, 
-                whatsapp = None, verified_ad = None, prepayment = None, 
+                category, first_post_date, extract_date, website, 
+                whatsapp = None, email = None, verified_ad = None, prepayment = None, 
                 promoted_ad = None, external_website = None, reviews_website = None):
 
         self.data_version = data_version
@@ -109,11 +165,12 @@ class Ad(db.Model):
         self.title = title
         self.text = text
         self.category = category
-        self.post_date = post_date
+        self.first_post_date = first_post_date
         self.extract_date = extract_date
         self.website = website
 
         self.whatsapp = whatsapp
+        self.email = email
         self.verified_ad = verified_ad
         self.prepayment = prepayment
         self.promoted_ad = promoted_ad
@@ -121,12 +178,29 @@ class Ad(db.Model):
         self.reviews_website = reviews_website
 
 """
+Define Date Model
+"""
+class Date(db.Model): 
+    __tablename__ = "date"
+    id_date = db.Column(db.Integer, primary_key = True)
+    id_ad = db.Column(db.Integer)
+    date = db.Column(db.DateTime(10))
+
+    def __init__(self, id_ad, date):
+        self.id_ad = id_ad
+        self.date = date
+
+
+"""
 Define Comment Model
 """
 class Comment(db.Model):
+    __tablename__ = "comment"
     id_comment = db.Column(db.Integer, primary_key = True)
     id_ad = db.Column(db.Integer)
     comment = db.Column(db.String(1000))
+
+    #ad = relation(Ad, backref = "comments") 
 
     def __init__(self, id_ad, comment):
         self.id_ad = id_ad
@@ -136,6 +210,7 @@ class Comment(db.Model):
 Define Location Model
 """
 class Location(db.Model):
+    __tablename__ = "location"
     id_location = db.Column(db.Integer, primary_key=True)
     id_ad = db.Column(db.Integer)
     country = db.Column(db.String(30))
@@ -145,6 +220,8 @@ class Location(db.Model):
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     zoom = db.Column(db.Integer)
+
+    #ad = relation(Ad, backref = "locations")
 
     def __init__(self, id_ad, country, region, city, place,
                  latitude, longitude, zoom):
@@ -161,6 +238,7 @@ class Location(db.Model):
 Define Phone Model
 """
 class Phone(db.Model):
+    __tablename__ = "phone"
     id_phone = db.Column(db.Integer, primary_key=True)
     id_ad = db.Column(db.Integer)
     phone = db.Column(db.Integer)
@@ -170,6 +248,8 @@ class Phone(db.Model):
     trust = db.Column(db.String(20))
     frequent_report = db.Column(db.String(20))
     processed = db.Column(db.Boolean)
+
+    #ad = relation(Ad, backref = "phones")
     
     def __init__(self, id_ad, phone, times_searched, 
                 num_complaints, first_service_provider, 
@@ -187,6 +267,7 @@ class Phone(db.Model):
 Define Feature Model
 """
 class Feature(db.Model):
+    __tablename__ = "feature"
     id_feature = db.Column(db.Integer, primary_key=True)
     id_ad = db.Column(db.Integer)
     age = db.Column(db.Integer)
@@ -198,6 +279,8 @@ class Feature(db.Model):
     hair_color = db.Column(db.String(20))
     eyes_color = db.Column(db.String(20))
     price = db.Column(db.Float)
+
+    #ad = relation(Ad, backref = "features")
 
     def __init__(self, id_ad, age, nationality, ethnicity, 
                 availability, weight, height, hair_color, eyes_color, 
@@ -217,6 +300,7 @@ class Feature(db.Model):
 Define Glossary Model
 """
 class Glossary(db.Model):
+    __tablename__ = "glossary"
     id_term = db.Column(db.Integer, primary_key=True)
     domain = db.Column(db.String(20))
     term = db.Column(db.String(30))
@@ -226,6 +310,7 @@ class Glossary(db.Model):
 Define Keyword Model
 """
 class Keyword(db.Model):
+    __tablename__ = "keyword"
     id_keyword = db.Column(db.Integer, primary_key=True)
     language = db.Column(db.String(20))
     keyword = db.Column(db.String(30))
@@ -374,47 +459,99 @@ def recover_password():
 This functions allows users to get data from ChainBreaker Database.
 # https://flask-sqlalchemy.palletsprojects.com/en/2.x/models/
 """
-@app.route('/api/data/get_ads', methods=['POST', "GET"])
-def get_ads():
-    #level = permission_level[current_user.permission]
-    #if level == 0:
-    #    return jsonify({'message' : 'Cannot perform that function!'})
-    data = request.values
-    EXCLUDE_FILTERS = ["filter_by_phones", "filter_by_location"]
-    filtered_args = {k: v for k, v in data.items() if v != "" and k not in EXCLUDE_FILTERS}
-    filters = [getattr(Ad, attribute) == value for attribute, value in filtered_args.items()]
-    ads = Ad.query.filter(and_(*filters)) \
-          .join(Phone, Phone.id_ad == Ad.id_ad) \
-          .join(Location, Location.id_ad == Ad.id_ad) \
-          .limit(200).all()
+@app.route('/api/data/get_sexual_ads', methods=['POST', "GET"])
+@token_required
+def get_sexual_ads(current_user):
+    # Some documentation: 
+    # - https://stackoverflow.com/questions/18227100/sqlalchemy-subquery-in-fplease%20pass%20a%20select()%20construct%20explicitlyom-clause-without-join
     
-    #.limit(200).all()
+    level = permission_level[current_user.permission]
+    if level == 0:
+        return jsonify({'message' : 'Cannot perform that function!'})
+    
+    data = request.values
+    EXCLUDE_FILTERS = ["start_date", "end_date", "from_id", "shop_and_services"]
+    # language, website, data_version
+    filtered_args = {k: v for k, v in data.items() if v != "" and k not in EXCLUDE_FILTERS} 
+    filters = [getattr(Ad, attribute) == value for attribute, value in filtered_args.items()]
 
-    output = list()
-    for ad in ads: 
-        ad_data = {}
-        ad_data["id_ad"] = ad.id_ad
-        ad_data["data_version"] = ad.data_version
-        ad_data["author"] = ad.author
-        ad_data["language"] = ad.language
-        ad_data["link"] = ad.link
-        ad_data["id_page"] = ad.id_page
-        ad_data["title"] = ad.title
-        ad_data["text"] = ad.text 
-        ad_data["category"] = ad.category 
-        ad_data["post_date"] = ad.post_date
-        ad_data["extract_date"] = ad.extract_date 
-        ad_data["website"] = ad.website 
+    shop_and_services = int(data["shop_and_services"])
+    if shop_and_services == 1: 
+        shop_filters = [Ad.category == value for value in app.config["SHOP_AND_SERVICES_CATEGORIES"]]
+        filters = filters + shop_filters
 
-        ad_data["whatsapp"] = ad.whatsapp
-        ad_data["verified_ad"] = ad.verified_ad
-        ad_data["prepayment"] = ad.prepayment 
-        ad_data["promoted_ad"] = ad.promoted_ad 
-        ad_data["external_website"] = ad.external_website
-        ad_data["reviews_website"] = ad.reviews_website
-       
-        output.append(ad_data)
-    return jsonify({"ads": output}), 200
+    start_date = datetime.datetime.strptime(data["start_date"], "%Y-%m-%d") 
+    end_date =  datetime.datetime.strptime(data["end_date"], "%Y-%m-%d")
+    from_id = int(request.args.get("from_id"))
+
+    dates_subquery = db.session.query(Date.id_ad) \
+        .filter(and_(Date.date >= start_date, Date.date <= end_date)) \
+        .group_by(Date.id_ad).having(func.count(Date.id_date) >= 1) \
+        .scalar_subquery()
+        
+    total_results = db.session.query(Ad.id_ad, Phone.id_ad, Location.id_ad) \
+        .filter(and_(*filters)) \
+        .filter(Ad.id_ad.in_(dates_subquery)) \
+        .filter(Ad.id_ad == Phone.id_ad) \
+        .filter(Ad.id_ad == Location.id_ad) \
+        .count()
+
+    ads = db.session.query(Ad, Phone, Location) \
+        .filter(Ad.id_ad > from_id) \
+        .filter(and_(*filters)) \
+        .filter(Ad.id_ad.in_(dates_subquery)) \
+        .filter(Ad.id_ad == Phone.id_ad) \
+        .filter(Ad.id_ad == Location.id_ad) \
+        .limit(app.config["MAX_ADS_PER_REQUEST"]) \
+        .all()
+
+    if len(ads) == 0:
+        return jsonify({"message": "No results were found for your search"}), 401
+    else:
+        output = list()
+        for ad, phone, location in ads: 
+            ad_data = {}
+
+            # Ad data.
+            ad_data["id_ad"] = ad.id_ad
+            ad_data["data_version"] = ad.data_version
+            ad_data["author"] = ad.author
+            ad_data["language"] = ad.language
+            ad_data["link"] = ad.link
+            ad_data["id_page"] = ad.id_page
+            ad_data["title"] = ad.title
+            ad_data["text"] = ad.text 
+            ad_data["category"] = ad.category 
+            ad_data["first_post_date"] = ad.first_post_date
+            ad_data["extract_date"] = ad.extract_date 
+            ad_data["website"] = ad.website 
+
+            ad_data["whatsapp"] = ad.whatsapp
+            ad_data["email"] = ad.email
+            ad_data["verified_ad"] = ad.verified_ad
+            ad_data["prepayment"] = ad.prepayment 
+            ad_data["promoted_ad"] = ad.promoted_ad 
+            ad_data["external_website"] = ad.external_website
+            ad_data["reviews_website"] = ad.reviews_website
+
+            # Phone data.
+            ad_data["phone"] = phone.phone
+
+            # Location data.
+            ad_data["country"] = location.country
+            ad_data["region"] = location.region
+            ad_data["city"] = location.city
+            ad_data["place"] = location.place
+            ad_data["latitude"] = location.latitude
+            ad_data["longitude"] = location.longitude
+            ad_data["zoom"] = location.zoom
+
+            output.append(ad_data)
+
+        last_id = ads[-1][0].id_ad
+        print("Request memory size: ", getsize(output), " bytes.")
+        
+        return jsonify({"total_results": total_results, "last_id":  last_id, "ads": output}), 200
     
 """
 This functions allows users to get the ChainBreaker Human Trafficking Glossary.
@@ -423,9 +560,9 @@ This functions allows users to get the ChainBreaker Human Trafficking Glossary.
 @token_required
 def get_glossary(current_user):
     level = permission_level[current_user.permission]
-    #print("level: ", level >= 1)
     if level == 0:
         return jsonify({'message' : 'Cannot perform that function!'})
+
     data = request.values
     domain = data["domain"]
     if domain != "":
@@ -490,12 +627,28 @@ Get if ad exists.
 """
 @app.route("/api/scraper/does_ad_exists", methods = ["POST", "GET"])
 def does_ad_exists():
+
+    WEBSITE_WITH_ADS_REPETEAD = ["mileroticos"]
+
     does_ad_exist = 1
     data = request.values
     id_page = str(data["id_page"])
+    website = data["website"]
     ads = Ad.query.filter_by(id_page = id_page).first()
+
     if ads == None:
         does_ad_exist = 0
+    else: 
+        if website in WEBSITE_WITH_ADS_REPETEAD:
+            now = datetime.datetime.now()
+            id_ad = int(ads.id_ad)
+            date = Date.query.filter_by(id_ad = id_ad).filter_by(date = now).first()
+
+            if date == None:
+                new_date = Date(id_ad, now)
+                db.session.add(new_date)
+                db.session.commit()
+
     return jsonify({"does_ad_exist": does_ad_exist})
 
 """
@@ -539,11 +692,6 @@ def format_text():
     text = remove_special_characters(text)
     text = tolower(text)
 
-    def clean_string(string):
-        string = string.replace("  ","")
-        string = string.replace("\n","")
-        return string
-
     return jsonify({"text": text})
 
 """
@@ -571,32 +719,47 @@ def insert_ad(current_user):
     title = data["title"]
     text = data["text"]
     category = data["category"] 
-    post_date = data["post_date"]
+    first_post_date = data["first_post_date"]
     extract_date = data["extract_date"]
     website = data["website"]
     
     # Optional fields.
-    whatsapp = data["whatsapp"] if data["whatsapp"] != "" else None
-    verified_ad = data["verified_ad"] if data["verified_ad"] != "" else None
-    prepayment = data["prepayment"] if data["prepayment"] != "" else None
-    promoted_ad = data["promoted_ad"] if data["promoted_ad"] != "" else None
     email = data["email"] if data["email"] != "" else None
+    whatsapp = data["whatsapp"] if data["whatsapp"] != "" else None
+    email = data["email"] if data["email"] != "" else None
+    verified_ad = int(data["verified_ad"]) #if data["verified_ad"] != "" else None
+    prepayment = int(data["prepayment"]) #if data["prepayment"] != "" else None
+    promoted_ad = int(data["promoted_ad"]) #if data["promoted_ad"] != "" else None
     external_website = data["external_website"] if data["external_website"] != "" else None
     reviews_website = data["reviews_website"] if data["reviews_website"] != "" else None
     
     # Create Ad.
-    new_ad = Ad(data_version, author, language, link, id_page, title, text, category, post_date,
-                extract_date, website, whatsapp, verified_ad, prepayment,
-                promoted_ad, email, external_website, reviews_website)
+    new_ad = Ad(data_version, author, language, link, id_page, title, text, category, first_post_date,
+                extract_date, website, whatsapp, email, verified_ad, prepayment,
+                promoted_ad, external_website, reviews_website)
     
-    # Get Ad Id.
-    id_ad = new_ad.id_ad
-
     # Add to DB.
     db.session.add(new_ad)
+    db.session.commit()
+
+    # Get Ad Id.
+    id_ad = int(Ad.query.filter_by(id_page = id_page).first().id_ad)
 
     #####################
-    ##   2. Comments   ##
+    ##   2. Date       ##
+    #####################
+    new_date = Date(id_ad, first_post_date)
+    db.session.add(new_date)
+
+    #####################
+    ##   3. Phone      ##
+    #####################
+    phone = data["phone"]
+    new_phone = Phone(id_ad, phone, None, None, None, None, None, 0)
+    db.session.add(new_phone)
+
+    #####################
+    ##   4. Comments   ##
     #####################
     comments = data.getlist("comments")
     for comment in comments: 
@@ -604,7 +767,7 @@ def insert_ad(current_user):
         db.session.add(new_comment)
 
     #####################
-    ##   3. Location   ##
+    ##   5. Location   ##
     #####################
 
     # Mandatory fields.
@@ -612,42 +775,23 @@ def insert_ad(current_user):
     region = data["region"]
     city = data["city"]
     place = data["place"]
-    latitude = data["latitude"]
-    longitude = data["longitude"]
-    zoom = data["zoom"]
+    latitude = None
+    longitude = None
+    zoom = None
+
+    #####################
+    ##   6. Images     ##
+    #####################
+    if app.config["DATA_VERSION"] == "3": 
+        # Insert images.
+        pass
 
     # Create Location.
     new_location = Location(id_ad, country, region, city, place, 
                             latitude, longitude, zoom)
     # Add to DB.
     db.session.add(new_location)
-    
-    #####################
-    ##   4. Features   ##
-    #####################
 
-    # All fields are optional.
-    if app.config["DATA_VERSION"] == 2:
-
-        age = data["age"] if data["age"] != "" else None
-        nationality = data["nationality"] if data["nationality"] != "" else None 
-        ethnicity = data["ethnicity"] if data["ethnicity"] != "" else None
-        availability = data["availability"] if data["availability"] != "" else None
-        weight = data["weight"] if data["weight"] != "" else None
-        height = data["height"] if data["height"] != "" else None
-        hair_color = data["hair_color"] if data["hair_color"] != "" else None
-        eyes_color = data["eyes_color"] if data["eyes_color"] != "" else None
-        price = data["price"] if data["price"] != "" else None
-        
-        if age != None or nationality != None or ethnicity != None or availability != None \
-        or weight != None or height != None or hair_color != None or eyes_color != None or price != None:
-
-            # Create Feature.
-            new_feature = Feature(id_ad, age, nationality, ethnicity, availability, 
-                                weight, height, hair_color, eyes_color, price)
-            # Add to DB.
-            db.session.add(new_feature)
-    
     # Commit database.
     db.session.commit()
     return jsonify({"message": "Ad successfully uploaded!"}), 200
@@ -712,7 +856,7 @@ def compute_nlp(current_user):
         return jsonify({'message' : 'Cannot perform that function!'})
     return jsonify({"message": 200})
 
-### Fase 2.
+### Fase 3.
 @app.route("/api/machine_learning/detect_faces", methods = ["POST", "GET"])
 @token_required
 def detect_faces(current_user):
@@ -721,7 +865,7 @@ def detect_faces(current_user):
         return jsonify({'message' : 'Cannot perform that function!'})
     return jsonify({"message": 200})
 
-### Fase 2.
+### Fase 3.
 @app.route("/api/machine_learning/encode_face", methods = ["POST", "GET"])
 @token_required
 def encode_faces(current_user):
@@ -730,7 +874,7 @@ def encode_faces(current_user):
         return jsonify({'message' : 'Cannot perform that function!'})
     return jsonify({"message": 200})
 
-### Fase 2.
+### Fase 3.
 @app.route("/api/machine_learning/decode_face", methods = ["POST", "GET"])
 @token_required
 def decode_face(current_user):
@@ -739,7 +883,7 @@ def decode_face(current_user):
         return jsonify({'message' : 'Cannot perform that function!'})
     return jsonify({"message": 200})
 
-### Fase 2.
+### Fase 3.
 @app.route("/api/machine_learning/process_image", methods = ["POST", "GET"])
 @token_required
 def process_image(current_user):
@@ -757,7 +901,7 @@ def process_image(current_user):
 
     return jsonify({"message": 200})
 
-### Fase 2.
+### Fase 3.
 @app.route("/api/machine_learning/get_image_from_encoding", methods = ["POST", "GET"])
 @token_required
 def get_image_from_encoding(current_user):

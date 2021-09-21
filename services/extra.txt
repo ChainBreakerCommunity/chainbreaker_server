@@ -1,0 +1,25 @@
+#####################
+##   4. Features   ##
+#####################
+
+# All fields are optional.
+if app.config["DATA_VERSION"] == "3":
+
+    age = data["age"] if data["age"] != "" else None
+    nationality = data["nationality"] if data["nationality"] != "" else None 
+    ethnicity = data["ethnicity"] if data["ethnicity"] != "" else None
+    availability = data["availability"] if data["availability"] != "" else None
+    weight = data["weight"] if data["weight"] != "" else None
+    height = data["height"] if data["height"] != "" else None
+    hair_color = data["hair_color"] if data["hair_color"] != "" else None
+    eyes_color = data["eyes_color"] if data["eyes_color"] != "" else None
+    price = data["price"] if data["price"] != "" else None
+    
+    if age != None or nationality != None or ethnicity != None or availability != None \
+    or weight != None or height != None or hair_color != None or eyes_color != None or price != None:
+
+        # Create Feature.
+        new_feature = Feature(id_ad, age, nationality, ethnicity, availability, 
+                            weight, height, hair_color, eyes_color, price)
+        # Add to DB.
+        db.session.add(new_feature)
