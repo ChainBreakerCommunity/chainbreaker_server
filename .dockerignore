@@ -1,0 +1,10 @@
+# Ignore directories
+appenv
+app/services
+
+# Ignore files.
+app/manifest.yml
+app/Procfile
+app/setup.py
+app/test.py
+app/old_code.txt

@@ -1,0 +1,15 @@
+werkzeug - WARNING -  * Debugger is active!
+werkzeug - INFO -  * Debugger PIN: 309-749-534
+werkzeug - WARNING -  * Running on all addresses.
+   WARNING: This is a development server. Do not use it in a production deployment.
+werkzeug - INFO -  * Running on http://192.168.0.21:8000/ (Press CTRL+C to quit)
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:03:52] "POST /api/user/login HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:05] "GET /api/status HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:09] "POST /api/scraper/does_ad_exists HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:11] "GET /api/status HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:14] "POST /api/scraper/does_ad_exists HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:16] "GET /api/status HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:19] "POST /api/scraper/does_ad_exists HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:21] "GET /api/status HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:24] "POST /api/scraper/does_ad_exists HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [01/Oct/2021 22:04:53] "POST /api/scraper/insert_ad HTTP/1.1" 200 -

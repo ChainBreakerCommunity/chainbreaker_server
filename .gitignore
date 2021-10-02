@@ -3,4 +3,4 @@
 appenv
 
 # Ignore test file.
-test.py
+app/test.py
