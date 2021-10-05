@@ -1,14 +1,14 @@
 {
     "port": "8000",
-    "db_endpoint": "mysql://reader:GaJ4a54RvaM94k4a@juanchobanano.com:3306/chainbreaker2?charset=utf8mb4",
+    "data_version": 2,
+    "db_endpoint": "mysql://reader:GaJ4a54RvaM94k4a@172.20.0.1:3306/chainbreaker?charset=utf8mb4",
     "secret_key": "u[NDYu>N:~)93-#u",
     "mail_username": "chainbreakerinfo@gmail.com",
     "mail_password": "chain#6125", 
     "max_ads_per_request": 500, 
     "geolocation_service_endpoint": "http://localhost:9600",
-    "ml_service_endpoint": "http://chainbreaker_ml:9700",
-    "data_version": 2,
-    "neo4j_endpoint": "bolt://localhost:7687",
+    "ml_service_endpoint": "http://localhost:9700",
+    "neo4j_endpoint": "bolt://172.20.0.6:7687",
     "neo4j_user": "reader",
     "neo4j_password": "123"
 }

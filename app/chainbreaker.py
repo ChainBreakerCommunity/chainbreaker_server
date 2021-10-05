@@ -57,7 +57,7 @@ app.config["GEOLOCATION_SERVICE_ENDPOINT"] = data["geolocation_service_endpoint"
 app.config["ML_SERVICE_ENDPOINT"] = data["ml_service_endpoint"]
 
 # Neo4j service.
-graph = Graph(data["neo4j_endpoint"], user = data["neo4j_user"], password = data["neo4j_password"])
+graph = Graph(data["neo4j_endpoint"]) #, user = data["neo4j_user"], password = data["neo4j_password"])
 
 # On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
 # When running this app on the local machine, default the port to 8000
