@@ -20,6 +20,8 @@ from sqlalchemy.orm import Session, backref, column_property, relation
 from sqlalchemy import or_, and_, func
 import json
 import requests
+import time
+import geolocation 
 
 from py2neo import Graph
 import neo4j_utils
@@ -53,22 +55,15 @@ mail = Mail(app)
 app.config["TUTORIAL_API"] = "https://chainbreaker.community"#"https://drive.google.com/file/d/1yQItms-GYHFbJhnMNKNstfFL8B6MLqZX/view?usp=sharing"
 app.config["DATA_VERSION"] = data["data_version"]
 app.config["MAX_ADS_PER_REQUEST"] = data["max_ads_per_request"]
-app.config["GEOLOCATION_SERVICE_ENDPOINT"] = data["geolocation_service_endpoint"]
+#app.config["GEOLOCATION_SERVICE_ENDPOINT"] = data["geolocation_service_endpoint"]
 app.config["ML_SERVICE_ENDPOINT"] = data["ml_service_endpoint"]
 
 # Neo4j service.
-graph = Graph(data["neo4j_endpoint"]) #, user = data["neo4j_user"], password = data["neo4j_password"])
+graph = Graph(data["neo4j_endpoint"], user = data["neo4j_user"], password = data["neo4j_password"])
 
 # On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
 # When running this app on the local machine, default the port to 8000
 port = int(os.getenv('PORT', int(data["port"])))
-
-permission_level = {
-    "reader": 1,
-    "labeler": 2,
-    "scraper": 3,
-    "admin": 4
-}
 
 """
 Get size of object.
@@ -595,21 +590,22 @@ def insert_ad(current_user):
     # Location.
     country = data["country"]
     region = data["region"]
-    city = data["city"]
-    place = data["place"]
+    city = data["city"] if data["city"] != "" else None
+    place = data["place"] if data["place"] != "" else None
     latitude = 0
     longitude = 0
     zoom = 0
     
-    data_geo = {"country": country, "region": region, "city": city, "place": place}
-    gps_data = requests.post(app.config["GEOLOCATION_SERVICE_ENDPOINT"] + "/api/get_geolocation", data = data_geo)
-    if gps_data.status_code == 200:
-        gps_data = gps_data.json()
-        latitude = gps_data["latitude"]
-        longitude = gps_data["longitude"]
-        zoom = gps_data["zoom"]
-    else: 
-        logging.error("An error has occurred with Geolocation Service when trying to get location of Ad with id_page: " + str(id_page) + ".")
+    # Get GPS location.
+    latitude, longitude, zoom = geolocation.get_geolocation(country, region, city, place)
+
+    #if gps_data.status_code == 200:
+    #    gps_data = gps_data.json()
+    #    latitude = gps_data["latitude"]
+    #    longitude = gps_data["longitude"]
+    #    zoom = gps_data["zoom"]
+    #else: 
+    #    logging.error("An error has occurred with Geolocation Service when trying to get location of Ad with id_page: " + str(id_page) + "." + gps_data.text)
     
     # Optional fields.
     email = data["email"] if data["email"] != "" else None
@@ -680,7 +676,8 @@ This function recieves an image and returns the coordinates where there are face
 @app.route("/api/machine_learning/get_image_faces", methods = ["POST", "GET"])
 @token_required
 def get_image_faces(current_user):
-    return requests.post(app.config["ML_SERVICE_ENDPOINT"], data = request.data)
-
+    #return requests.post(app.config["ML_SERVICE_ENDPOINT"], data = request.data)
+    return jsonify({"message": "Service currently unavailable."})
+    
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port, debug=True)

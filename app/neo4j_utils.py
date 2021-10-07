@@ -61,7 +61,7 @@ def create_ad(graph, data):
     params = {"id_ad": int(data["id_ad"]), "language": data["language"], "link": data["link"], "category": data["category"], 
               "phone": int(data["phone"]), "title": data["title"], "text": data["text"], "country": data["country"], "region": data["region"], 
               "city": data["city"], "website": data["website"], "date": datetime.datetime.strptime(data["first_post_date"], "%Y-%m-%d")}
-    if data["external_website"] != None: 
+    if data["external_website"] != None and data["external_website"] != "": 
         params["external_website"] = data["external_website"]
 
     # Create Ad Node.
@@ -99,14 +99,14 @@ def create_ad(graph, data):
     tx.create(Ad_Region)
     tx.create(Ad_City)
     
-    if data["external_website"] != None:
+    if data["external_website"] != None and data["external_website"] != "":
         ExternalWebsite = get_node(graph, "ExternalWebsite", name = data["external_website"])
         Ad_ExternalWebsite = Relationship(Ad, "HAS_EXTERNAL_WEBSITE", ExternalWebsite)
         tx.create(ExternalWebsite)
         tx.create(Ad_ExternalWebsite)
     
     # Generate relations between pre-existing ads based on external_website and phone attributes.
-    if data["external_website"] != None:
+    if data["external_website"] != None and data["external_website"] != "":
         query = "MATCH (a: Ad) WHERE (a.id_ad <> {id_ad}) AND (a.external_website = '{external_website}' OR a.phone = {phone}) RETURN a" \
             .format(id_ad = params["id_ad"], external_website = params["external_website"], phone = params["phone"])
     else:

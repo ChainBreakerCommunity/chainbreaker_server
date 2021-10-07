@@ -6,9 +6,9 @@
     "mail_username": "chainbreakerinfo@gmail.com",
     "mail_password": "chain#6125", 
     "max_ads_per_request": 500, 
-    "geolocation_service_endpoint": "http://localhost:9600",
-    "ml_service_endpoint": "http://localhost:9700",
-    "neo4j_endpoint": "bolt://172.20.0.6:7687",
-    "neo4j_user": "reader",
+    "geolocation_service_endpoint": "http://172.20.0.1:9600",
+    "ml_service_endpoint": "http://172.20.0.1:9700",
+    "neo4j_endpoint": "bolt://172.20.0.1:7687",
+    "neo4j_user": "neo4j",
     "neo4j_password": "123"
 }
