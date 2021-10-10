@@ -1,6 +1,6 @@
 from py2neo import Graph, NodeMatcher, Node, Relationship
-import neotime 
 import datetime
+import pandas as pd
 
 def get_node(graph, label, **kwargs):
     """
@@ -123,3 +123,50 @@ def create_ad(graph, data):
 
     # Commit all operations.
     graph.commit(tx)
+
+def get_labels_count(graph):
+    output = list()
+    for label in graph.run("CALL db.labels()").to_series():
+        result = {}
+        query = f"MATCH (:`{label}`) RETURN count(*) as count"
+        count = graph.run(query).to_data_frame().iloc[0]['count']
+        result["label"] = str(label)
+        result["count"] = str(count)
+        output.append(result)
+    return output
+
+def get_communities(graph):
+
+    # Create temporary graph consisting in Ads and undirected relationships.
+    create_query = """
+    CALL gds.graph.create(
+        "in-memory-graph-1633830502056", 
+        "Ad", 
+        {
+            HAS_RELATION: {
+                orientation: "UNDIRECTED"
+            }
+        },
+        {} 
+    )
+    """
+    # Run query.
+    res = graph.run(create_query)
+    print(res)
+
+    # Apply weak connected components algorithm on the previous created graph.
+    detection_query = """
+    CALL gds.wcc.stream("in-memory-graph-1633830502056")
+    YIELD nodeId, componentId AS community
+    WITH gds.util.asNode(nodeId) as ad, community
+    RETURN ad.id_ad, ad.website, community
+    """
+    
+    # Get results
+    results = graph.run(detection_query).data()
+
+    # Delete temporary graph.
+    graph.run("CALL gds.graph.drop('in-memory-graph-1633830502056');")
+
+    # Return results.
+    return results

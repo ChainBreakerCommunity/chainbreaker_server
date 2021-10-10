@@ -6,7 +6,7 @@ import json
 import re 
 
 import logging
-logging.basicConfig(filename='geolocation.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+#logging.basicConfig(filename='geolocation.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 SECONDS_SLEEP = 1.5
 LOCATIONS_FILE = "./geolocations.json"

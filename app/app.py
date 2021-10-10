@@ -22,6 +22,7 @@ import json
 import requests
 import time
 import geolocation 
+import folium
 
 from py2neo import Graph
 import neo4j_utils
@@ -90,12 +91,19 @@ def getsize(obj):
         objects = get_referents(*need_referents)
     return size
 
-"""
-Return the frontend of the application.
-"""
 @app.route('/')
 def root():
+    """
+    Return the frontend of the application.
+    """
     return app.send_static_file('index.html')
+
+@app.route("/login")
+def login_page():
+    """
+    Return login website.
+    """
+    return jsonify({"status":"login website"})
 
 """
 Define User Model
@@ -513,6 +521,42 @@ def check_phone_in_db(current_user):
         ad_data["phone"] = ad.phone
         output.append(ad_data)
     return jsonify({"ads": output}), 200
+
+"""
+Counts the number of nodes per label in neo4j
+"""
+@app.route("/api/graph/get_labels_count", methods = ["GET"])
+def get_labels_count():
+    data = neo4j_utils.get_labels_count(graph)
+    return jsonify({"labels_count": data})
+
+"""
+Returns the communities identified using community detection algorithm
+"""
+@app.route("/api/graph/get_communities", methods = ["GET"])
+def get_communities():
+    communities = neo4j_utils.get_communities(graph)
+    return jsonify({"communities": communities})
+
+@app.route("/api/data/get_locations_map", methods = ["GET"])
+def get_locations_map():
+    start_coords = (4.581440, -73.397964)
+    folium_map = folium.Map(location=start_coords, zoom_start=6)
+
+    zoom_filter = 15
+    ads = db.session.query(Ad) \
+        .filter(Ad.country == "colombia") \
+        .filter(Ad.zoom >= zoom_filter) \
+        .limit(app.config["MAX_ADS_PER_REQUEST"]) \
+        .all()
+    for ad in ads: 
+        folium.Marker(
+            [ad.latitude, ad.longitude], 
+            popup = ad.title
+        ).add_to(folium_map)
+    return folium_map._repr_html_()
+
+
 
 #####################################
 ## ChainBreaker Scrapers Endpoints ##
