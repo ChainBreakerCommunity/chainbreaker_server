@@ -23,6 +23,7 @@ import requests
 import time
 import geolocation 
 import folium
+import hashlib
 
 from py2neo import Graph
 import neo4j_utils
@@ -66,10 +67,10 @@ graph = Graph(data["neo4j_endpoint"], user = data["neo4j_user"], password = data
 # When running this app on the local machine, default the port to 8000
 port = int(os.getenv('PORT', int(data["port"])))
 
-"""
-Get size of object.
-"""
 def getsize(obj):
+    """
+    Get size of object.
+    """
     from types import ModuleType, FunctionType
     from gc import get_referents
     import sys
@@ -90,6 +91,62 @@ def getsize(obj):
                 need_referents.append(obj)
         objects = get_referents(*need_referents)
     return size
+
+def format_ads_to_json(ads):
+    """
+    Format Ads Data to json.
+    """
+    hash_function = hashlib.sha256()
+    last_id = 0
+    output = list()
+    for ad in ads: 
+        ad_data = {}
+
+        # Ad data.
+        ad_data["id_ad"] = ad.id_ad
+        ad_data["data_version"] = ad.data_version
+        ad_data["author"] = ad.author
+        ad_data["language"] = ad.language
+        ad_data["link"] = ad.link
+        ad_data["id_page"] = ad.id_page
+        ad_data["title"] = ad.title
+        ad_data["text"] = ad.text 
+        ad_data["category"] = ad.category 
+        ad_data["first_post_date"] = ad.first_post_date
+        ad_data["extract_date"] = ad.extract_date 
+        ad_data["website"] = ad.website 
+
+        # Phone data.
+        x = bytes(str(ad.phone), "utf-8")
+        hash_function.update(x)
+        phone_hash = hash_function.hexdigest()
+        ad_data["phone"] = phone_hash
+
+        # Location data.
+        ad_data["country"] = ad.country
+        ad_data["region"] = ad.region
+        ad_data["city"] = ad.city
+        ad_data["place"] = ad.place
+        ad_data["latitude"] = ad.latitude
+        ad_data["longitude"] = ad.longitude
+        ad_data["zoom"] = ad.zoom
+
+        x = bytes(str(ad.email), "utf-8")
+        hash_function.update(x)
+        email_hash = hash_function.hexdigest()
+        ad_data["email"] = email_hash
+
+        ad_data["verified_ad"] = ad.verified_ad
+        ad_data["prepayment"] = ad.prepayment 
+        ad_data["promoted_ad"] = ad.promoted_ad 
+        ad_data["external_website"] = ad.external_website
+        ad_data["reviews_website"] = ad.reviews_website
+
+        ad_data["nationality"] = ad.nationality
+        ad_data["age"] = ad.age
+        last_id = ad.id_ad
+        output.append(ad_data)
+    return output, last_id
 
 @app.route('/')
 def root():
@@ -156,13 +213,15 @@ class Ad(db.Model):
     promoted_ad = db.Column(db.Boolean())
     external_website = db.Column(db.String(100))
     reviews_website = db.Column(db.String(100))
-    
+
+    nationality = db.Column(db.String(100))
+    age = db.Column(db.Integer)
 
     def __init__(self, data_version, author, language, link, id_page, title, text, 
                 category, first_post_date, extract_date, website, phone, country, region, 
                 city, place, latitude, longitude, zoom, email = None, 
                 verified_ad = None, prepayment = None, promoted_ad = None, external_website = None,
-                reviews_website = None):
+                reviews_website = None, nationality = None, age = None):
 
         self.data_version = data_version
         self.author = author
@@ -192,6 +251,9 @@ class Ad(db.Model):
         self.promoted_ad = promoted_ad
         self.external_website = external_website
         self.reviews_website = reviews_website
+
+        self.nationality = nationality
+        self.age = age
 
 """
 Define Comment Model
@@ -409,49 +471,29 @@ def get_sexual_ads(current_user):
     if len(ads) == 0:
         return jsonify({"message": "No results were found for your search"}), 401
     else:
-        last_id = 0
-        output = list()
-        for ad in ads: 
-            ad_data = {}
-
-            # Ad data.
-            ad_data["id_ad"] = ad.id_ad
-            ad_data["data_version"] = ad.data_version
-            ad_data["author"] = ad.author
-            ad_data["language"] = ad.language
-            ad_data["link"] = ad.link
-            ad_data["id_page"] = ad.id_page
-            ad_data["title"] = ad.title
-            ad_data["text"] = ad.text 
-            ad_data["category"] = ad.category 
-            ad_data["first_post_date"] = ad.first_post_date
-            ad_data["extract_date"] = ad.extract_date 
-            ad_data["website"] = ad.website 
-
-            # Phone data.
-            ad_data["phone"] = ad.phone
-
-            # Location data.
-            ad_data["country"] = ad.country
-            ad_data["region"] = ad.region
-            ad_data["city"] = ad.city
-            ad_data["place"] = ad.place
-            ad_data["latitude"] = ad.latitude
-            ad_data["longitude"] = ad.longitude
-            ad_data["zoom"] = ad.zoom
-
-            ad_data["email"] = ad.email
-            ad_data["verified_ad"] = ad.verified_ad
-            ad_data["prepayment"] = ad.prepayment 
-            ad_data["promoted_ad"] = ad.promoted_ad 
-            ad_data["external_website"] = ad.external_website
-            ad_data["reviews_website"] = ad.reviews_website
-            last_id = ad.id_ad
-            output.append(ad_data)
-
-        print("Request memory size: ", getsize(output), " bytes.")
+        output, last_id = format_ads_to_json(ads)
+        #print("Request memory size: ", getsize(output), " bytes.")
         return jsonify({"total_results": total_results, "last_id":  last_id, "ads": output}), 200
     
+
+"""
+This functions allows users to get specific data from ChainBreaker Database.
+"""
+@app.route('/api/data/get_sexual_ads_by_id', methods=['POST', "GET"])
+@token_required
+def get_sexual_ads_by_id(current_user):
+    data = request.values
+    ids_filter = list()
+    ads_ids = data.getlist("ads_ids")
+    for id in ads_ids: 
+        ids_filter.append(int(id))
+
+    ads = db.session.query(Ad) \
+        .filter(Ad.id_ad.in_(ids_filter)) \
+        .all()
+    output, last_id = format_ads_to_json(ads)
+    return jsonify({"ads": output}), 200
+
 """
 This functions allows users to get the ChainBreaker Human Trafficking Glossary.
 """
@@ -533,29 +575,66 @@ def get_labels_count():
 """
 Returns the communities identified using community detection algorithm
 """
-@app.route("/api/graph/get_communities", methods = ["GET"])
+@app.route("/api/graph/get_communities", methods = ["GET", "POST"])
 def get_communities():
-    communities = neo4j_utils.get_communities(graph)
+    data = request.values
+    country = data["country"] if data["country"] != "" else None
+    communities = neo4j_utils.get_communities(graph, country)
     return jsonify({"communities": communities})
+
+"""
+Returns the graph of a community.
+"""
+@app.route("/api/graph/get_graph_community", methods = ["GET", "POST"])
+def get_graph_community():
+    data = request.values
+    nodeId = data["nodeId"]
+    return jsonify({"communities": 200})
+
 
 @app.route("/api/data/get_locations_map", methods = ["GET"])
 def get_locations_map():
+    #Great Folium Tutorial https://www.youtube.com/watch?v=t9Ed5QyO7qY
     start_coords = (4.581440, -73.397964)
-    folium_map = folium.Map(location=start_coords, zoom_start=6)
+    folium_map = folium.Map(location=start_coords, zoom_start=3)
 
-    zoom_filter = 15
+    zoom_filter = 0
     ads = db.session.query(Ad) \
-        .filter(Ad.country == "colombia") \
         .filter(Ad.zoom >= zoom_filter) \
-        .limit(app.config["MAX_ADS_PER_REQUEST"]) \
         .all()
+
+    from random import shuffle
+    data = list()
+    shuffle(ads)
+    counter = 0
     for ad in ads: 
+        counter += 1
+        data.append([ad.latitude, ad.longitude])
+        """
+        popup = "Ad Id: " + str(ad.id_ad) + ". Location: " + ad.city + " "
+        if ad.place != None:
+            popup += ad.place
         folium.Marker(
             [ad.latitude, ad.longitude], 
-            popup = ad.title
+            popup = popup
         ).add_to(folium_map)
-    return folium_map._repr_html_()
+        if counter >= app.config["MAX_ADS_PER_REQUEST"]:
+            break
+        """
+    #folium.PolyLine(data, weight = 1, color = "blue", opacity = 0.6).add_to(folium_map)
+    from folium.plugins import HeatMap, Draw
+    draw = Draw(export = True)
+    draw.add_to(folium_map)
+    HeatMap(data).add_to(folium.FeatureGroup(name="Heat Map")).add_to(folium_map)
+    folium.LayerControl().add_to(folium_map)
+    print("Request memory size: ", getsize(folium_map), " bytes.")
+    #folium_map._repr_html_()
+    folium_map.save(outfile = "folium_map.html")
+    return jsonify({"message": "ok"})
 
+@app.route("/template")
+def template():
+    return render_template("folium_map.html")
 
 
 #####################################
@@ -590,7 +669,7 @@ def does_ad_exists(current_user):
     data = request.values
     id_page = str(data["id_page"])
     website = data["website"]
-    ads = Ad.query.filter_by(id_page = id_page).first()
+    ads = Ad.query.filter_by(website = website).filter_by(id_page = id_page).first()
 
     if ads == None:
         does_ad_exist = 0
@@ -612,8 +691,8 @@ def insert_ad(current_user):
         return jsonify({'message' : "You don't have the required permissions to execute this function!"})
     data = request.values
 
-    print("Data keys: ")
-    print(data.keys())
+    #print("Data keys: ")
+    #print(data.keys())
 
     # Ad data.
     data_version = app.config["DATA_VERSION"]
@@ -636,21 +715,18 @@ def insert_ad(current_user):
     region = data["region"]
     city = data["city"] if data["city"] != "" else None
     place = data["place"] if data["place"] != "" else None
-    latitude = 0
-    longitude = 0
+    latitude = float(data["latitude"]) if data["latitude"] != "" else 0
+    longitude = float(data["longitude"]) if data["longitude"] != "" else 0
     zoom = 0
-    
-    # Get GPS location.
-    latitude, longitude, zoom = geolocation.get_geolocation(country, region, city, place)
 
-    #if gps_data.status_code == 200:
-    #    gps_data = gps_data.json()
-    #    latitude = gps_data["latitude"]
-    #    longitude = gps_data["longitude"]
-    #    zoom = gps_data["zoom"]
-    #else: 
-    #    logging.error("An error has occurred with Geolocation Service when trying to get location of Ad with id_page: " + str(id_page) + "." + gps_data.text)
-    
+    # Optional parameters.
+    nationality = data["nationality"] if data["nationality"] != "" else None
+    age = int(data["age"]) if data["age"] != "" else None
+
+    # Get GPS location.
+    if latitude == 0 and longitude == 0:
+        latitude, longitude, zoom = geolocation.get_geolocation(country, region, city, place)
+
     # Optional fields.
     email = data["email"] if data["email"] != "" else None
     verified_ad = int(data["verified_ad"]) if data["verified_ad"] != "" else None
@@ -662,7 +738,7 @@ def insert_ad(current_user):
     # Create Ad in MySQL.
     new_ad = Ad(data_version, author, language, link, id_page, title, text, category, first_post_date,
                 extract_date, website, phone, country, region, city, place, latitude, longitude, zoom, 
-                email, verified_ad, prepayment, promoted_ad, external_website, reviews_website)
+                email, verified_ad, prepayment, promoted_ad, external_website, reviews_website, nationality, age)
 
     # Add to DB.
     db.session.add(new_ad)
@@ -684,6 +760,8 @@ def insert_ad(current_user):
 
     return jsonify({"message": "Ad successfully uploaded!"}), 200
     
+
+
 """
 This function recieves a phonumber and return different variables related with it.
 """

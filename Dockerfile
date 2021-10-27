@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED 1
 RUN apt-get update
 RUN apt-get -y install build-essential 
 RUN apt-get -y install default-libmysqlclient-dev
-RUN apt-get -y install vim nano
+RUN apt-get -y install nano
 
 RUN mkdir /ibm
 WORKDIR /ibm

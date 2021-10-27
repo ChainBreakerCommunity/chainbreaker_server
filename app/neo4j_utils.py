@@ -135,7 +135,7 @@ def get_labels_count(graph):
         output.append(result)
     return output
 
-def get_communities(graph):
+def get_communities(graph, country):
 
     # Create temporary graph consisting in Ads and undirected relationships.
     create_query = """
@@ -152,21 +152,37 @@ def get_communities(graph):
     """
     # Run query.
     res = graph.run(create_query)
-    print(res)
-
+    
     # Apply weak connected components algorithm on the previous created graph.
     detection_query = """
     CALL gds.wcc.stream("in-memory-graph-1633830502056")
     YIELD nodeId, componentId AS community
     WITH gds.util.asNode(nodeId) as ad, community
-    RETURN ad.id_ad, ad.website, community
     """
-    
+    if country != None:
+        detection_query += " WHERE ad.country = '{country}'".format(country = country)
+    detection_query += " RETURN ad.id_ad, ad.website, ad.country, community"
+
     # Get results
     results = graph.run(detection_query).data()
 
     # Delete temporary graph.
     graph.run("CALL gds.graph.drop('in-memory-graph-1633830502056');")
 
+    # Get communities.
+    data = pd.DataFrame(results)
+    data.columns = ["id_ad", "website", "country", "community"]
+    #print(data.tail())
+    communities = {}
+    for i in range(len(data)):
+        row = data.iloc[i]
+        id_ad = str(row["id_ad"])
+        community_id = str(row["community"])
+        if community_id not in communities:
+            communities[community_id] = list([id_ad])
+        else:
+            communities[community_id].append(id_ad)
+
     # Return results.
-    return results
+    return communities
+
