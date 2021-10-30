@@ -8,6 +8,10 @@ import re
 import logging
 #logging.basicConfig(filename='geolocation.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
+with open("config.json") as json_file: 
+    data = json.load(json_file)
+
+SELENIUM_ENDPOINT = data["selenium_endpoint"]
 SECONDS_SLEEP = 1.5
 LOCATIONS_FILE = "./geolocations.json"
         
@@ -105,7 +109,7 @@ def get_geolocation(country, region, city, place):
         
     else: 
 
-        driver_geo = webdriver.Remote("http://selenium:4444/wd/hub", desired_capabilities = DesiredCapabilities.FIREFOX)
+        driver_geo = webdriver.Remote(SELENIUM_ENDPOINT, desired_capabilities = DesiredCapabilities.FIREFOX)
         #driver = webdriver.Chrome(executable_path="chromedriver.exe")
         driver_geo.get("https://www.google.com/maps/?hl=es")
         driver_geo.save_screenshot("screenshot.png")

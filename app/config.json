@@ -1,13 +1,14 @@
 {
     "port": "8000",
     "data_version": 2,
-    "db_endpoint": "mysql://reader:GaJ4a54RvaM94k4a@172.30.226.210:3306/chainbreaker?charset=utf8mb4",
+    "db_endpoint": "mysql://root:test@172.30.226.210:3306/chainbreaker?charset=utf8mb4",
     "secret_key": "u[NDYu>N:~)93-#u",
     "mail_username": "chainbreakerinfo@gmail.com",
     "mail_password": "chain#6125", 
     "max_ads_per_request": 500, 
     "ml_service_endpoint": "http://172.20.0.1:9700",
-    "neo4j_endpoint": "bolt://172.30.226.212:7687",
+    "neo4j_endpoint": "bolt://172.30.226.218:7687",
     "neo4j_user": "neo4j",
-    "neo4j_password": "123"
+    "neo4j_password": "123",
+    "selenium_endpoint": "http://172.30.226.216:4444/wd/hub"
 }
