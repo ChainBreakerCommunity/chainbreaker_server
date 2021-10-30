@@ -5,8 +5,6 @@ RUN apt-get update
 RUN apt-get -y install build-essential 
 RUN apt-get -y install default-libmysqlclient-dev 
 RUN apt-get -y install nano
-#RUN apt-get clean \
-# && rm -rf /var/lib/apt/lists/*
 RUN mkdir /ibm
 WORKDIR /ibm
 COPY ./app /ibm
