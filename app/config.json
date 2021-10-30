@@ -7,7 +7,7 @@
     "mail_password": "chain#6125", 
     "max_ads_per_request": 500, 
     "ml_service_endpoint": "http://172.20.0.1:9700",
-    "neo4j_endpoint": "bolt://172.30.226.218:7687",
+    "neo4j_endpoint": "bolt://172.30.226.220:7687",
     "neo4j_user": "neo4j",
     "neo4j_password": "123",
     "selenium_endpoint": "http://172.30.226.216:4444/wd/hub"
