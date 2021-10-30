@@ -1,12 +1,12 @@
 FROM python:3.7-slim
 LABEL key="ChainBreaker"
 ENV PYTHONUNBUFFERED 1
-RUN apt-get update --no-install-recommends
-RUN apt-get -y install build-essential --no-install-recommends
-RUN apt-get -y install default-libmysqlclient-dev --no-install-recommends
-RUN apt-get -y install nano --no-install-recommends
-RUN apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get -y install build-essential 
+RUN apt-get -y install default-libmysqlclient-dev 
+RUN apt-get -y install nano
+#RUN apt-get clean \
+# && rm -rf /var/lib/apt/lists/*
 RUN mkdir /ibm
 WORKDIR /ibm
 COPY ./app /ibm
