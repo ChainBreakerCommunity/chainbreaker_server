@@ -1,5 +1,5 @@
 # Ignore directories
-appenv
+env
 app/services
 
 # Ignore files.

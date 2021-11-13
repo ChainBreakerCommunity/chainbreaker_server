@@ -13,7 +13,7 @@ with open("config.json") as json_file:
 
 SELENIUM_ENDPOINT = data["selenium_endpoint"]
 SECONDS_SLEEP = 1.5
-LOCATIONS_FILE = "./geolocations.json"
+LOCATIONS_FILE = "./geolocations/"
         
 def search_place(driver_geo, keys):
     query_input = driver_geo.find_element_by_xpath("""//*[@id="searchboxinput"]""")
@@ -87,8 +87,8 @@ def location_to_array(location):
     location[2] = int(location[2])
     return location
 
-def get_geolocation(country, region, city, place):
-    with open(LOCATIONS_FILE, "r") as json_file: 
+def get_geolocation(country: str, region: str, city: str, place: str):
+    with open(LOCATIONS_FILE + country.lower() + "_geolocations.json", "r") as json_file: 
         hash_map = json.load(json_file)
 
     request_info = "Request information: " + " Country: " + country + ", Region: " + region 
@@ -122,7 +122,7 @@ def get_geolocation(country, region, city, place):
         # Add a new location.
         logging.warning("Save new location in map.")
         hash_map[fields[0]] = fields[1]
-        a_file = open(LOCATIONS_FILE, "w")
+        a_file = open(LOCATIONS_FILE + country.lower() + "_geolocations.json", "w")
         json.dump(hash_map, a_file)
         a_file.close()
         time.sleep(SECONDS_SLEEP)
