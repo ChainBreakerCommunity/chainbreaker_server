@@ -1,3 +1,5 @@
+
+#https://stackoverflow.com/questions/11994325/how-to-divide-flask-app-into-multiple-py-files
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -74,7 +76,7 @@ def status():
     return jsonify({'status' : 200})
 
 # Import routes.
-import routes
+import views
 
 if __name__ == '__main__':
     port = int(8000)

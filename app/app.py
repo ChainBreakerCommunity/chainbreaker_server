@@ -43,12 +43,16 @@ def get_resource_as_string(name, charset='utf-8'):
         return f.read().decode(charset)
 app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 
-
+# MySQL Service.
 app.config["SECRET_KEY"] = data["secret_key"]
 app.config['SQLALCHEMY_DATABASE_URI'] = data["db_endpoint"]
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
+# Free Trial.
+app.config["FREE_TRIAL"] = data["free_trial"]
+
+# Email Service.
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USERNAME'] = data["mail_username"]
@@ -64,7 +68,13 @@ app.config["MAX_ADS_PER_REQUEST"] = data["max_ads_per_request"]
 app.config["ML_SERVICE_ENDPOINT"] = data["ml_service_endpoint"]
 
 # Neo4j service.
-graph = Graph(data["neo4j_endpoint"], user = data["neo4j_user"], password = data["neo4j_password"])
+neo4j_enable = (data["neo4j_enable"] == "true")
+graph = None
+if neo4j_enable:
+    graph = Graph(data["neo4j_endpoint"], user = data["neo4j_user"], password = data["neo4j_password"])
+
+# Scrap enable.
+selenium_enable = (data["selenium_enable"] == "true")
 
 # On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
 # When running this app on the local machine, default the port to 8000
@@ -95,6 +105,13 @@ def getsize(obj):
         objects = get_referents(*need_referents)
     return size
 
+def textToHash(text):
+    hash_function = hashlib.sha256()
+    x = bytes(str(text), "utf-8")
+    hash_function.update(x)
+    hash = hash_function.hexdigest()
+    return hash
+
 def format_ads_reduced_to_json(ads):
     """
     Format reduced version of ads data to json.
@@ -116,17 +133,9 @@ def format_ads_reduced_to_json(ads):
 
         # Website.
         ad_data["external_website"] = ad.external_website
-
         output.append(ad_data)
 
     return output
-
-def textToHash(text):
-    hash_function = hashlib.sha256()
-    x = bytes(str(text), "utf-8")
-    hash_function.update(x)
-    hash = hash_function.hexdigest()
-    return hash
 
 def format_ads_to_json(ads, secure = False):
     """
@@ -142,7 +151,7 @@ def format_ads_to_json(ads, secure = False):
         ad_data["data_version"] = ad.data_version
         ad_data["author"] = ad.author
         ad_data["language"] = ad.language
-        ad_data["link"] = textToHash(ad.link) if not secure else ad.link
+        ad_data["link"] = textToHash(ad.link) if (not secure and ad.link != None) else ad.link
         ad_data["id_page"] = ad.id_page
         ad_data["title"] = ad.title
         ad_data["text"] = ad.text 
@@ -152,7 +161,7 @@ def format_ads_to_json(ads, secure = False):
         ad_data["website"] = ad.website 
 
         # Phone data.
-        ad_data["phone"] = textToHash(ad.phone) if not secure else ad.phone
+        ad_data["phone"] = textToHash(ad.phone) if (not secure and ad.phone != None) else ad.phone
 
         # Location data.
         ad_data["country"] = ad.country
@@ -162,25 +171,61 @@ def format_ads_to_json(ads, secure = False):
         ad_data["latitude"] = ad.latitude
         ad_data["longitude"] = ad.longitude
         ad_data["zoom"] = ad.zoom
-        ad_data["email"] = textToHash(ad.email) if not secure else ad.email
+        ad_data["email"] = textToHash(ad.email) if (not secure and ad.email != None) else ad.email
         ad_data["verified_ad"] = ad.verified_ad
         ad_data["prepayment"] = ad.prepayment 
         ad_data["promoted_ad"] = ad.promoted_ad 
-        ad_data["external_website"] = textToHash(ad.external_website) if not secure else ad.external_website
-        ad_data["reviews_website"] = textToHash(ad.reviews_website) if not secure else ad.reviews_website
+        ad_data["external_website"] = textToHash(ad.external_website) if (not secure and ad.external_website != None) else ad.external_website
+        ad_data["reviews_website"] = textToHash(ad.reviews_website) if (not secure and ad.reviews_website != None) else ad.reviews_website
         ad_data["nationality"] = ad.nationality
         ad_data["age"] = ad.age
+        ad_data["score_risk"] = ad.score_risk
 
         last_id = ad.id_ad
         output.append(ad_data)
+
     return output, last_id
+
+def register_user(data):
+
+    password_length = 5
+    possible_characters = "abcdefghijklmnopqrstuvwxyz1234567890"
+    random_character_list = [random.choice(possible_characters) for i in range(password_length)]
+    random_password = "".join(random_character_list)
+
+    data = request.values
+    name = data["name"]
+    email = data["email"]
+    permission = "reader"
+    link = app.config["TUTORIAL_API"]
+
+    hashed_password = generate_password_hash(random_password, method='sha256')
+    new_user = User(name = name,
+                    email = email, 
+                    password = hashed_password, 
+                    permission = permission)
+    db.session.add(new_user)
+    db.session.commit()
+
+    with app.app_context():
+        with mail.connect() as conn:
+            msg = Message(subject = "Welcome to ChainBreaker Community!", 
+                        recipients = [data["email"]], 
+                        sender = app.config['MAIL_USERNAME'])
+            #render_template("welcome.html")
+            template = welcome(name, email[0: email.find("@")] + " (" + email[email.find("@"):  ] + ")", random_password, link)
+            msg.html = template
+            msg.attach("chain-white.png", "image/png", open("static/images/chain-white.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<chainlogo>'],]) 
+            msg.attach("hero-img.png", "image/png", open("static/images/hero-img.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
+            conn.send(msg)
+    return True
 
 @app.route('/')
 def root():
     """
     Return the frontend of the application.
     """
-    return app.send_static_file('index.html')
+    return app.send_static_file('info.html')
 
 
 """
@@ -193,12 +238,25 @@ class User(db.Model):
     email = db.Column(db.String(50))
     password = db.Column(db.String(100))
     permission = db.Column(db.String(10))
+    registration_date = db.Column(db.DateTime(10))
+    api_calls = db.Column(db.Integer)
+    last_api_call_date = db.Column(db.DateTime(10))
+    phone_search = db.Column(db.Integer)
+    successful_phone_search = db.Column(db.Integer)
+    available_phone_calls = db.Column(db.Integer)
 
     def __init__(self, name, email, password, permission):
         self.name = name
         self.email = email
         self.password = password
         self.permission = permission
+        self.registration_date = datetime.datetime.now()
+        self.api_calls = 0
+        self.last_api_call_date = None
+        self.phone_search = 0
+        self.successful_phone_search = 0
+        self.available_phone_calls = app.config["FREE_TRIAL"]
+
 
 """
 Define Ad Model
@@ -330,6 +388,9 @@ def token_required(f):
         try: 
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
             current_user = User.query.filter_by(email=data['email']).first()
+            current_user.api_calls += 1
+            current_user.last_api_call_date = datetime.datetime.now()
+            db.session.commit()
         except:
             return jsonify({'message' : 'Token is invalid!'}), 401
         return f(current_user, *args, **kwargs)
@@ -377,6 +438,17 @@ def login():
     return make_response('Could not verify', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
 
 """
+This functions allows users to create an account.
+"""
+@app.route('/api/user/register', methods=['PUT'])
+def register():
+    res = register_user(data)
+    if res:
+        return jsonify({'message' : 'New user created!'}), 200
+    else: 
+        return jsonify({'message' : 'There has been an error.'}), 404
+    
+"""
 This functions allows administrators to create new users.
 """
 @app.route('/api/user/create_user', methods=['PUT'])
@@ -384,39 +456,11 @@ This functions allows administrators to create new users.
 def create_user(current_user):
     if not current_user.permission == "admin":
         return jsonify({'message' : "You don't have the required permissions to execute this function!"})
-
-    password_length = 5
-    possible_characters = "abcdefghijklmnopqrstuvwxyz1234567890"
-    random_character_list = [random.choice(possible_characters) for i in range(password_length)]
-    random_password = "".join(random_character_list)
-
-    data = request.values
-    name = data["name"]
-    email = data["email"]
-    permission = data["permission"]
-    link = app.config["TUTORIAL_API"]
-
-    hashed_password = generate_password_hash(random_password, method='sha256')
-    new_user = User(name = name,
-                    email = email, 
-                    password = hashed_password, 
-                    permission = permission)
-    db.session.add(new_user)
-    db.session.commit()
-
-    with app.app_context():
-        with mail.connect() as conn:
-            msg = Message(subject = "Welcome to ChainBreaker Community!", 
-                          recipients = [data["email"]], 
-                          sender = app.config['MAIL_USERNAME'])
-            #render_template("welcome.html")
-            template = welcome(name, email[0: email.find("@")] + " (" + email[email.find("@"):  ] + ")", random_password, link)
-            msg.html = template
-            msg.attach("chain-white.png", "image/png", open("static/images/chain-white.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<chainlogo>'],]) 
-            msg.attach("hero-img.png", "image/png", open("static/images/hero-img.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
-            conn.send(msg)
-
-    return jsonify({'message' : 'New user created!'})
+    res = register_user(data)
+    if res:
+        return jsonify({'message' : 'New user created!'}), 200
+    else: 
+        return jsonify({'message' : 'There has been an error.'}), 404
 
 """
 This function allows users to change their password.
@@ -469,9 +513,12 @@ This functions allows users to get data from ChainBreaker Database.
 @app.route('/api/data/get_sexual_ads', methods=['POST', "GET"])
 @token_required
 def get_sexual_ads(current_user):
+    SECURE_ROLES = ["client", "researcher", "admin"]
+    secure = (current_user.permission in SECURE_ROLES)
+
     # Some documentation: 
     # - https://stackoverflow.com/questions/18227100/sqlalchemy-subquery-in-fplease%20pass%20a%20select()%20construct%20explicitlyom-clause-without-join
-    
+
     # Get data from requests.
     data = request.values
     EXCLUDE_FILTERS = ["start_date", "end_date", "from_id"]
@@ -487,14 +534,23 @@ def get_sexual_ads(current_user):
     from_id = int(request.args.get("from_id"))
 
     # Get ids of ads inside the dates range.
-    dates_subquery = neo4j_utils.get_ads_inside_dates(graph, start_date, end_date)
-    #print(type(dates_subquery[0]), type(Ad.id_ad))
+    if neo4j_enable: 
+        dates_subquery = neo4j_utils.get_ads_inside_dates(graph, start_date, end_date)
+    else:
+        start_date = datetime.datetime.strptime(data["start_date"], "%Y-%m-%d") 
+        end_date = datetime.datetime.strptime(data["end_date"], "%Y-%m-%d")
+        subquery = db.session.query(Ad.id_ad) \
+            .filter(and_(Ad.first_post_date >= start_date, Ad.first_post_date <= end_date)) \
+            .all()
+        dates_subquery = list()
+        for id in subquery:
+            dates_subquery.append(id[0])
 
     total_results = db.session.query(Ad.id_ad) \
         .filter(*filters) \
         .filter(Ad.id_ad.in_(dates_subquery)) \
         .count()
-
+        
     ads = db.session.query(Ad) \
         .filter(Ad.id_ad > from_id) \
         .filter(*filters) \
@@ -505,16 +561,21 @@ def get_sexual_ads(current_user):
     if len(ads) == 0:
         return jsonify({"message": "No results were found for your search"}), 401
     else:
-        output, last_id = format_ads_to_json(ads)
+        output, last_id = format_ads_to_json(ads, secure = secure)
         #print("Request memory size: ", getsize(output), " bytes.")
         return jsonify({"total_results": total_results, "last_id":  last_id, "ads": output}), 200
     
 """
 This functions allows users to get specific data from ChainBreaker Database.
+SECURE ENDPOINT.
 """
 @app.route('/api/data/get_sexual_ads_by_id', methods=['POST', "GET"])
 @token_required
 def get_sexual_ads_by_id(current_user):
+    ALLOWED_ROLES = ["client", "researcher", "admin"]
+    if current_user.permission not in ALLOWED_ROLES:
+        return jsonify({'message' : "You don't have the required permissions to execute this function!"})
+
     data = request.values
     reduced_version = int(data["reduced_version"])
     ads_ids = data.getlist("ads_ids")
@@ -527,7 +588,7 @@ def get_sexual_ads_by_id(current_user):
         ads = db.session.query(Ad) \
             .filter(Ad.id_ad.in_(ids_filter)) \
             .all()
-        output, last_id = format_ads_to_json(ads)
+        output, last_id = format_ads_to_json(ads, secure = True)
     else:
         ads = db.session.query(Ad.id_ad, Ad.language, Ad.title, Ad.text, Ad.category, Ad.country, Ad.city, Ad.external_website) \
             .filter(Ad.id_ad.in_(ids_filter)) \
@@ -535,28 +596,6 @@ def get_sexual_ads_by_id(current_user):
         output = format_ads_reduced_to_json(ads)
 
     return jsonify({"ads": output}), 200
-
-@app.route('/api/data/get_sexual_ad_for_review', methods=["GET"])
-@token_required
-def get_sexual_ad_for_review(current_user):
-    ALLOWED_ROLES = ["expert", "researcher", "admin"]
-    if current_user.permission not in ALLOWED_ROLES:
-        return jsonify({'message' : "You don't have the required permissions to execute this function!"})
-    first_ad = db.session.query(Ad).order_by(func.random()).first()
-    output = format_ads_to_json([first_ad], secure = True)[0]
-    return jsonify(output)
-
-@app.route("/api/data/submit_review", methods=["POST"])
-@token_required
-def submit_review(current_user):
-    ALLOWED_ROLES = ["expert", "researcher", "admin"]
-    if current_user.permission not in ALLOWED_ROLES:
-        return jsonify({'message' : "You don't have the required permissions to execute this function!"}), 401
-    auth = request.get_json()
-    if auth == None: 
-       auth = request.values
-    print(auth)
-    return jsonify({"message": "ok"})
 
 """
 This functions allows users to get the ChainBreaker Human Trafficking Glossary.
@@ -611,22 +650,27 @@ def get_keywords(current_user):
 """
 Check if phone is in database.
 """
-@app.route("/api/data/check_phone_in_db", methods = ["POST", "GET"])
+@app.route("/api/data/search_phone", methods = ["POST", "GET"])
 @token_required
-def check_phone_in_db(current_user):
-    ALLOWED_ROLES = ["researcher", "admin"]
-    if current_user.permission not in ALLOWED_ROLES:
-        return jsonify({'message' : "You don't have the required permissions to execute this function!"})
+def search_phone(current_user):
+    SECURE_ROLES = ["client", "researcher", "admin"]
+    secure = (current_user.permission in SECURE_ROLES)
+    reader = (current_user.permission == "reader")
+    current_user.phone_search += 1
+    db.session.commit()
+    if reader: 
+        if current_user.available_phone_calls >= 1:
+            current_user.available_phone_calls -= 1
+            db.session.commit()
+        else: 
+            return jsonify({"message": "You have exceeded the free trail API calls. If you want to keep using this service, please contact us to chainbreakerinfo@gmail.com"}), 404
     data = request.values
     phone = data["phone"]
     ads = Ad.query.filter_by(phone = phone).all()
-    output = list()
-    for ad in ads:
-        ad_data = {}
-        ad_data["link"] = ad.link
-        ad_data["title"] = ad.title
-        ad_data["phone"] = ad.phone
-        output.append(ad_data)
+    if len(ads) > 0:
+        current_user.successful_phone_search += 1
+        db.session.commit()
+    output, last_id = format_ads_to_json(ads, secure = secure)
     return jsonify({"ads": output}), 200
 
 """
@@ -649,22 +693,24 @@ def get_phone_score_risk(current_user):
         return jsonify({"message": "Phone not in database."}), 404
     else:
         score_risk = first_ad.score_risk
-        avg = db.session.query(func.avg(Ad.score_risk)) \
-            .filter(Ad.country == "colombia").first()[0]
-        std = db.session.query(func.std(Ad.score_risk)) \
-            .filter(Ad.country == "colombia").first()[0]
-        standard_score = (score_risk - avg) / std
-        def sigmoid_function(x):
-            import math
-            return 1 / (1 + math.exp(-x))
-        sigmoid_value = round(sigmoid_function(standard_score), 4)
-        return jsonify({"score_risk": sigmoid_value}), 200
+        #avg = db.session.query(func.avg(Ad.score_risk)) \
+        #    .filter(Ad.country == "colombia").first()[0]
+        #std = db.session.query(func.std(Ad.score_risk)) \
+        #    .filter(Ad.country == "colombia").first()[0]
+        #standard_score = (score_risk - avg) / std
+        #def sigmoid_function(x):
+        #    import math
+        #    return 1 / (1 + math.exp(-x))
+        #sigmoid_value = round(sigmoid_function(standard_score), 4)
+        return jsonify({"score_risk": score_risk}), 200
 
 """
 Counts the number of nodes per label in neo4j
 """
 @app.route("/api/graph/get_labels_count", methods = ["GET"])
 def get_labels_count():
+    if not neo4j_enable: 
+        return jsonify({"message": "Sorry. Service not available at the moment."}), 400
     data = neo4j_utils.get_labels_count(graph)
     return jsonify({"labels_count": data})
 
@@ -674,6 +720,8 @@ Returns the communities identified using community detection algorithm
 @app.route("/api/graph/get_communities", methods = ["GET", "POST"])
 @token_required
 def get_communities(current_user):
+    if not neo4j_enable: 
+        return jsonify({"message": "Sorry. Service not available at the moment."}), 400
     ALLOWED_ROLES = ["super_reader", "researcher", "admin"]
     if current_user.permission not in ALLOWED_ROLES:
         return jsonify({'message' : "You don't have the required permissions to execute this function!"})
@@ -687,19 +735,12 @@ Returns the community of an specific advertisement.
 """
 @app.route("/api/graph/get_community_ads", methods = ["GET", "POST"])
 def get_community_ads():
+    if not neo4j_enable: 
+        return jsonify({"message": "Sorry. Service not available at the moment."}), 400
     data = request.values
     id_community = int(data["id_community"])
     communities = neo4j_utils.get_communities(graph, country = None)
     return jsonify({"ads_ids": communities[str(id_community - 1)]})
-
-"""
-Returns the graph of a community.
-"""
-@app.route("/api/graph/get_graph_community", methods = ["GET", "POST"])
-def get_graph_community():
-    data = request.values
-    nodeId = data["nodeId"]
-    return jsonify({"communities": 200})
 
 #####################################
 ##         Render Websites         ##
@@ -748,7 +789,6 @@ def get_locations_map():
 def template():
     return render_template("folium_map.html")
 
-
 #####################################
 ## ChainBreaker Scrapers Endpoints ##
 #####################################
@@ -758,12 +798,13 @@ Get soup given an url.
 @app.route("/api/scraper/get_soup", methods = ["POST", "GET"])
 @token_required
 def get_soup(current_user):
+
     ALLOWED_ROLES = ["scraper", "researcher", "admin"]
     if current_user.permission not in ALLOWED_ROLES:
         return jsonify({'message' : "You don't have the required permissions to execute this function!"})
     data = request.values
     url = data["url"]
-    return jsonify({"result": "Service not currently available"}), 400
+    return jsonify({"message": "Sorry. Service not available at the moment."}), 400
 
 """
 Get if ad exists.
@@ -771,6 +812,7 @@ Get if ad exists.
 @app.route("/api/scraper/does_ad_exists", methods = ["POST", "GET"])
 @token_required
 def does_ad_exists(current_user):
+
     ALLOWED_ROLES = ["scraper", "reseacher", "admin"]
     if current_user.permission not in ALLOWED_ROLES:
         return jsonify({'message' : "You don't have the required permissions to execute this function!"})
@@ -790,8 +832,8 @@ def does_ad_exists(current_user):
     if ads == None:
         does_ad_exist = 0
     else: 
-        id_ad = int(ads.id_ad)
-        if website in WEBSITE_WITH_ADS_REPETEAD:
+        if website in WEBSITE_WITH_ADS_REPETEAD and neo4j_enable:
+            id_ad = int(ads.id_ad)
             neo4j_utils.create_new_date_for_ad(graph, id_ad)
 
     return jsonify({"does_ad_exist": does_ad_exist})
@@ -802,6 +844,8 @@ This function allow writers to add new advertisments to ChainBreaker DB.
 @app.route('/api/scraper/insert_ad', methods=['POST', "GET"])
 @token_required
 def insert_ad(current_user):
+
+
     ALLOWED_ROLES = ["scraper", "researcher", "admin"]
     if current_user.permission not in ALLOWED_ROLES:
         return jsonify({'message' : "You don't have the required permissions to execute this function!"})
@@ -840,7 +884,7 @@ def insert_ad(current_user):
     age = int(data["age"]) if data["age"] != "" else None
 
     # Get GPS location.
-    if latitude == 0 and longitude == 0:
+    if latitude == 0 and longitude == 0 and selenium_enable:
         latitude, longitude, zoom = geolocation.get_geolocation(country, region, city, place)
 
     # Optional fields.
@@ -866,11 +910,12 @@ def insert_ad(current_user):
 
     # Get last Ad id.
     id_ad = int(Ad.query.filter_by(id_page = id_page).first().id_ad)
-    neo4j_data = data.to_dict(flat = True)
-    neo4j_data["id_ad"] = id_ad
 
     # Create Ad in Neo4j and correspoding relationships.
-    neo4j_utils.create_ad(graph, neo4j_data)
+    if neo4j_enable:
+        neo4j_data = data.to_dict(flat = True)
+        neo4j_data["id_ad"] = id_ad
+        neo4j_utils.create_ad(graph, neo4j_data)
 
     # Upload comments.
     comments = data.getlist("comments")
@@ -886,6 +931,7 @@ This function recieves a phonumber and return different variables related with i
 @app.route("/api/scraper/get_phone_info", methods = ["POST", "GET"])
 @token_required
 def get_phone_info(current_user):
+
     ALLOWED_ROLES = ["scraper", "researcher", "admin"]
     if current_user.permission not in ALLOWED_ROLES:
         return jsonify({'message' : "You don't have the required permissions to execute this function!"})
@@ -917,6 +963,6 @@ This function recieves an image and returns the coordinates where there are face
 def get_image_faces(current_user):
     #return requests.post(app.config["ML_SERVICE_ENDPOINT"], data = request.data)
     return jsonify({"message": "Service currently unavailable."})
-    
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port, debug=True)

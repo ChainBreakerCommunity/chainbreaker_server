@@ -1,4 +1,4 @@
-FROM python:3.7-slim
+FROM python:3.7-slim.
 LABEL key="ChainBreaker"
 ENV PYTHONUNBUFFERED 1
 RUN apt-get update
