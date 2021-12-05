@@ -670,8 +670,10 @@ def search_phone(current_user):
     if len(ads) > 0:
         current_user.successful_phone_search += 1
         db.session.commit()
-    output, last_id = format_ads_to_json(ads, secure = secure)
-    return jsonify({"ads": output}), 200
+        output, last_id = format_ads_to_json(ads, secure = secure)
+        return jsonify({"ads": output}), 200
+    else:
+        return jsonify({"message": "No results were found for your search"}), 404
 
 """
 Get risk score of cellphone.
