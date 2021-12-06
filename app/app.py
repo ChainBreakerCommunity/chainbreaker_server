@@ -207,17 +207,21 @@ def register_user(data):
     db.session.add(new_user)
     db.session.commit()
 
-    with app.app_context():
-        with mail.connect() as conn:
-            msg = Message(subject = "Welcome to ChainBreaker Community!", 
-                        recipients = [data["email"]], 
-                        sender = app.config['MAIL_USERNAME'])
-            #render_template("welcome.html")
-            template = welcome(name, email[0: email.find("@")] + " (" + email[email.find("@"):  ] + ")", random_password, link)
-            msg.html = template
-            msg.attach("chain-white.png", "image/png", open("static/images/chain-white.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<chainlogo>'],]) 
-            msg.attach("hero-img.png", "image/png", open("static/images/hero-img.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
-            conn.send(msg)
+    try:
+        with app.app_context():
+            with mail.connect() as conn:
+                msg = Message(subject = "Welcome to ChainBreaker Community!", 
+                            recipients = [data["email"]], 
+                            sender = app.config['MAIL_USERNAME'])
+                #render_template("welcome.html")
+                template = welcome(name, email[0: email.find("@")] + " (" + email[email.find("@"):  ] + ")", random_password, link)
+                msg.html = template
+                msg.attach("chain-white.png", "image/png", open("static/images/chain-white.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<chainlogo>'],]) 
+                msg.attach("hero-img.png", "image/png", open("static/images/hero-img.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
+                conn.send(msg)
+    except Exception as e: 
+        print(str(e))
+        return False
     return True
 
 @app.route('/')
@@ -493,17 +497,19 @@ def recover_password():
     user = User.query.filter_by(email = email).first()
     token = jwt.encode({'id_user' : user.id_user, "email": user.email, "permission": user.permission, 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes = 10)}, app.config['SECRET_KEY'], algorithm = "HS256")
 
-    with app.app_context():
-        with mail.connect() as conn:
-            msg = Message(subject = "Chainbreaker Password Recovery", 
-                          recipients = [data["email"]], 
-                          sender = app.config['MAIL_USERNAME'])
-            template = recover(user.name, email[0: email.find("@")] + " (" + email[email.find("@"): ] + ")", token, link)
-            msg.html = template
-            msg.attach("chain-white.png", "image/png", open("static/images/chain-white.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<chainlogo>'],]) 
-            msg.attach("why-us.png", "image/png", open("static/images/why-us.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
-            conn.send(msg)
-
+    try:
+        with app.app_context():
+            with mail.connect() as conn:
+                msg = Message(subject = "Chainbreaker Password Recovery", 
+                            recipients = [data["email"]], 
+                            sender = app.config['MAIL_USERNAME'])
+                template = recover(user.name, email[0: email.find("@")] + " (" + email[email.find("@"): ] + ")", token, link)
+                msg.html = template
+                msg.attach("chain-white.png", "image/png", open("static/images/chain-white.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<chainlogo>'],]) 
+                msg.attach("why-us.png", "image/png", open("static/images/why-us.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
+                conn.send(msg)
+    except Exception as e: 
+        return jsonify({"message": str(e)})
     return jsonify({'message' : 'We have sent you a recovery e-mail to' + email + '! You have 10 minutes to change your password.'})
 
 """
