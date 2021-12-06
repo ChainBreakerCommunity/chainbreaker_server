@@ -34,6 +34,8 @@ logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(level
 with open("config.json") as json_file: 
     data = json.load(json_file)
 
+# MAIL CONF: https://www.twilio.com/blog/2018/03/send-email-programmatically-with-gmail-python-and-flask.html
+
 app = Flask(__name__, static_url_path='')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type' # Set headers.
@@ -196,6 +198,11 @@ def register_user(data):
     data = request.values
     name = data["name"]
     email = data["email"]
+
+    user = User.query.filter_by(email=email).first()
+    if user != None:
+        return True
+
     permission = "reader"
     link = app.config["TUTORIAL_API"]
 
@@ -509,7 +516,7 @@ def recover_password():
                 msg.attach("why-us.png", "image/png", open("static/images/why-us.png", "rb").read(), disposition="inline", headers=[["Content-ID",'<communitylogo>'],])
                 conn.send(msg)
     except Exception as e: 
-        return jsonify({"message": str(e)})
+        return jsonify({"message": str(e)}), 404
     return jsonify({'message' : 'We have sent you a recovery e-mail to' + email + '! You have 10 minutes to change your password.'})
 
 """

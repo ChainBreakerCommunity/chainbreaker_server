@@ -3,10 +3,3 @@ werkzeug - INFO -  * Debugger PIN: 577-137-310
 werkzeug - WARNING -  * Running on all addresses.
    WARNING: This is a development server. Do not use it in a production deployment.
 werkzeug - INFO -  * Running on http://192.168.0.14:8000/ (Press CTRL+C to quit)
-werkzeug - INFO - 127.0.0.1 - - [05/Dec/2021 18:52:56] "GET /api/status HTTP/1.1" 200 -
-werkzeug - INFO - 127.0.0.1 - - [05/Dec/2021 18:53:01] "POST /api/user/login HTTP/1.1" 200 -
-werkzeug - INFO - 127.0.0.1 - - [05/Dec/2021 18:53:15] "POST /api/data/search_phone HTTP/1.1" 200 -
-werkzeug - INFO - 127.0.0.1 - - [05/Dec/2021 18:53:20] "[33mPOST /api/data/search_phone HTTP/1.1[0m" 404 -
-werkzeug - INFO - 127.0.0.1 - - [05/Dec/2021 18:53:25] "POST /api/data/get_phone_score_risk HTTP/1.1" 200 -
-werkzeug - INFO - 127.0.0.1 - - [05/Dec/2021 18:53:30] "[33mPOST /api/data/get_phone_score_risk HTTP/1.1[0m" 404 -
-werkzeug - INFO - 127.0.0.1 - - [05/Dec/2021 18:53:36] "POST /api/data/get_phone_score_risk HTTP/1.1" 200 -
