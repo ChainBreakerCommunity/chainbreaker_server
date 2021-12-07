@@ -673,8 +673,7 @@ def search_phone(current_user):
     db.session.commit()
     if reader: 
         if current_user.available_phone_calls >= 1:
-            current_user.available_phone_calls -= 1
-            db.session.commit()
+            pass
         else: 
             return jsonify({"message": "You have exceeded the free trail API calls. If you want to keep using this service, please contact us to chainbreakerinfo@gmail.com"}), 404
     data = request.values
@@ -682,6 +681,9 @@ def search_phone(current_user):
     ads = Ad.query.filter_by(phone = phone).all()
     if len(ads) > 0:
         current_user.successful_phone_search += 1
+        current_user.available_phone_calls -= 1
+        db.session.commit()
+
         db.session.commit()
         output, last_id = format_ads_to_json(ads, secure = secure)
         return jsonify({"ads": output}), 200
