@@ -1,5 +1,5 @@
 {
-    "port": "8000",
+    "port": "8100",
     "data_version": 2,
     "db_endpoint": "mysql://reader:GaJ4a54RvaM94k4a@juanchobanano.com:3306/chainbreaker3?charset=utf8mb4",
     "secret_key": "u[NDYu>N:~)93-#u",
@@ -13,5 +13,6 @@
     "selenium_endpoint": "http://localhost:4444/wd/hub", 
     "neo4j_enable": "false", 
     "free_trial": 500, 
-    "selenium_enable": "false"
+    "selenium_enable": "false", 
+    "chainbreaker_website_endpoint": "https://chainbreaker-labels.herokuapp.com"
 }

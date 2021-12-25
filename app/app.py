@@ -27,6 +27,7 @@ import hashlib
 
 from py2neo import Graph
 import neo4j_utils
+import nlp
 
 import logging
 logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
@@ -74,6 +75,9 @@ neo4j_enable = (data["neo4j_enable"] == "true")
 graph = None
 if neo4j_enable:
     graph = Graph(data["neo4j_endpoint"], user = data["neo4j_user"], password = data["neo4j_password"])
+
+# Get chainbreaker website endpoint.
+chainbreaker_website_endpoint = data["chainbreaker_website_endpoint"]
 
 # Scrap enable.
 selenium_enable = (data["selenium_enable"] == "true")
@@ -683,8 +687,6 @@ def search_phone(current_user):
         current_user.successful_phone_search += 1
         current_user.available_phone_calls -= 1
         db.session.commit()
-
-        db.session.commit()
         output, last_id = format_ads_to_json(ads, secure = secure)
         return jsonify({"ads": output}), 200
     else:
@@ -861,13 +863,12 @@ This function allow writers to add new advertisments to ChainBreaker DB.
 @app.route('/api/scraper/insert_ad', methods=['POST', "GET"])
 @token_required
 def insert_ad(current_user):
-
-
     ALLOWED_ROLES = ["scraper", "researcher", "admin"]
     if current_user.permission not in ALLOWED_ROLES:
         return jsonify({'message' : "You don't have the required permissions to execute this function!"})
     data = request.values
 
+    print("Data received!")
     #print("Data keys: ")
     #print(data.keys())
 
@@ -940,6 +941,9 @@ def insert_ad(current_user):
         new_comment = Comment(id_ad, comment)
         db.session.add(new_comment)
 
+    # Execute NLP feature extraction.
+    res = nlp.get_nlp_dicc(new_ad)
+
     return jsonify({"message": "Ad successfully uploaded!"}), 200
     
 """
@@ -981,5 +985,15 @@ def get_image_faces(current_user):
     #return requests.post(app.config["ML_SERVICE_ENDPOINT"], data = request.data)
     return jsonify({"message": "Service currently unavailable."})
 
+"""
+This function recieves an image and returns the coordinates where there are faces.
+"""
+@app.route("/api/prueba", methods = ["GET"])
+def prueba():
+    nlp.prueba()
+    return jsonify({"message": "Hey!"}), 200
+
+
 if __name__ == '__main__':
+    print("PORT: ", port)
     app.run(host='0.0.0.0', port=port, debug=True)
