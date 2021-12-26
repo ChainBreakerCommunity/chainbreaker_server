@@ -943,7 +943,7 @@ def insert_ad(current_user):
 
     # Execute NLP feature extraction.
     res = nlp.get_nlp_dicc(new_ad, Keyword, chainbreaker_website_endpoint)
-
+    print("NLP Return Code: ", res.status_code)
     return jsonify({"message": "Ad successfully uploaded!"}), 200
     
 """

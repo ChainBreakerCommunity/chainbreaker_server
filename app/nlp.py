@@ -270,6 +270,7 @@ def get_nlp_dicc(ad, Keyword, chainbreaker_website_endpoint):
 
     # Get attributes.
     id_ad = ad.id_ad
+    title = ad.title
     text = ad.text
     country = ad.country
     language = ad.language
@@ -281,27 +282,27 @@ def get_nlp_dicc(ad, Keyword, chainbreaker_website_endpoint):
     first_plural_person = get_first_plural_person(language, text)
     
     # Format text to correctly execute other functions.
-    print(text)
+    title = format_string(title)
     text = format_string(text)
 
     # Sex type
-    sex_type = get_sex_type(language, text)
+    sex_type = get_sex_type(language, title + " " + text)
 
     # Preservative
-    preservative = get_preservative(language, text)
+    preservative = get_preservative(language, title + " " + text)
   
     # Service place
-    service_place = get_service_place(language, text)
+    service_place = get_service_place(language, title + " " + text)
 
     # Keywords.
     keywords = Keyword.query.filter_by(language = "spanish").all()
-    keywords_res = get_keywords(keywords, "spanish", text)
+    keywords_res = get_keywords(keywords, "spanish", title + " " + text)
     age_keywords = ", ".join(keywords_res[0]) if ", ".join(keywords_res[0]) != "" else ""
     sexual_exploitation_keywords = ", ".join(keywords_res[1])if ", ".join(keywords_res[1]) != "" else ""
     movement_keywords = ", ".join(keywords_res[2]) if ", ".join(keywords_res[2]) != "" else ""
 
     # Foreign.
-    foreign = get_foreign(language, country, text)
+    foreign = get_foreign(language, country, title + " " + text)
     foreign_bool = 1 if foreign[0] else 0
     origin_country = foreign[1]
 
