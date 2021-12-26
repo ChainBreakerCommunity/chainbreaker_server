@@ -1,6 +1,4 @@
 # Import libraries.
-from app import Keyword, Ad
-from app import chainbreaker_website_endpoint
 import requests
 
 # Weak Supervision.
@@ -199,7 +197,7 @@ def get_service_place(language: str, text: str):
     return dicc[inside + "-" + outside]
 
 # Keywords.
-def get_keywords(keywords: List[Keyword], language: str, text: str):
+def get_keywords(keywords, language: str, text: str):
     """
     Fix misspelling words using https://spacy.io/universe/project/contextualSpellCheck
     """
@@ -207,18 +205,18 @@ def get_keywords(keywords: List[Keyword], language: str, text: str):
     sexual_exploitation_keywords = list()
     movement_keywords = list()
     
-    for keyword in keywords:
+    for keyword_obj in keywords:
         #keyword_row = keywords.iloc[i]
         
-        language_kw = keyword.language
-        keyword = format_string(keyword.keyword)
+        language_kw = keyword_obj.language
+        keyword = format_string(keyword_obj.keyword)
         
         if keyword == "ama" or keyword == "amo":
            keyword = " " + keyword + " "
       
-        age_flag = keyword.age_flag
-        trafficking_flag = keyword.trafficking_flag
-        movement_flag = keyword.movement_flag
+        age_flag = keyword_obj.age_flag
+        trafficking_flag = keyword_obj.trafficking_flag
+        movement_flag = keyword_obj.movement_flag
         #meaning = keyword_row.meaning
 
         #print(keyword, age_flag, trafficking_flag, movement_flag)
@@ -268,7 +266,7 @@ def get_foreign(language: str, ad_country: str, text: str):
 
     return foreign, ", ".join(nationalities) #, cities
 
-def get_nlp_dicc(ad: Ad):
+def get_nlp_dicc(ad, Keyword, chainbreaker_website_endpoint):
 
     # Get attributes.
     id_ad = ad.id_ad

@@ -412,7 +412,7 @@ def token_required(f):
     return decorated
 
 
-"""
+"""Keyword, chainbreaker_website_endpoint
 ChainBreaker IBM Stauts
 """
 @app.route("/api/status", methods = ["GET"])
@@ -942,7 +942,7 @@ def insert_ad(current_user):
         db.session.add(new_comment)
 
     # Execute NLP feature extraction.
-    res = nlp.get_nlp_dicc(new_ad)
+    res = nlp.get_nlp_dicc(new_ad, Keyword, chainbreaker_website_endpoint)
 
     return jsonify({"message": "Ad successfully uploaded!"}), 200
     

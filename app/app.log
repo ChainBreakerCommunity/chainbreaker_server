@@ -1,5 +1,11 @@
 werkzeug - WARNING -  * Debugger is active!
 werkzeug - INFO -  * Debugger PIN: 577-137-310
 werkzeug - WARNING -  * Running on all addresses.
-   WARNING: This is a development server. Do not use it in a production deployment.
-werkzeug - INFO -  * Running on http://192.168.0.20:8100/ (Press CTRL+C to quit)
+   WARNING: This is a development server. Do not use it in a productionwerkzeug - INFO -  * Restarting with stat
+on http://192.168.0.20:8100/ (Press CTRL+C to quit)
+werkzeug - INFO - 127.0.0.1 - - [26/Dec/2021 11:47:39] "POST /api/user/login HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [26/Dec/2021 11:47:51] "GET /api/status HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [26/Dec/2021 11:47:54] "POST /api/scraper/does_ad_exists HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [26/Dec/2021 11:48:20] "POST /api/scraper/insert_ad HTTP/1.1" 200 -
+werkzeug - INFO - 127.0.0.1 - - [26/Dec/2021 11:48:22] "GET /api/status HTTP/1.1" 200 -
+werkzeug - INFO -  * Detected change in 'C:\\Users\\Juan Esteban Cepeda\\Documents\\chainbreaker\\chainbreaker_ibm\\app\\nlp.py', reloading
