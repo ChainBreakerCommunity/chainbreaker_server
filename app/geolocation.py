@@ -4,6 +4,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium import webdriver
 import json 
 import re 
+import sys
 
 import logging
 #logging.basicConfig(filename='geolocation.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
@@ -98,13 +99,20 @@ def get_geolocation(country: str, region: str, city: str, place: str):
             request_info = request_info + ", Place: " + place
 
     logging.warning(request_info)
+    print(request_info)
+    sys.stdout.flush()
+
     location_name = get_location_name(country, region, city, place)
     logging.warning("Location to search: ", location_name)
+    print("Location to search: ", location_name)
+    sys.stdout.flush()
 
     # Search in hashmap.
     if location_name in list(hash_map.keys()):
         # Get location in dictionary.
         logging.warning("Location found in dictionary!")
+        print("Location found in dictionary!")
+        sys.stdout.flush()
         gps_location = location_to_array(hash_map[location_name])
         
     else: 
@@ -121,6 +129,9 @@ def get_geolocation(country: str, region: str, city: str, place: str):
 
         # Add a new location.
         logging.warning("Save new location in map.")
+        print("Save new location in map.")
+        sys.stdout.flush()
+        
         hash_map[fields[0]] = fields[1]
         a_file = open(LOCATIONS_FILE + country.lower() + "_geolocations.json", "w")
         json.dump(hash_map, a_file)

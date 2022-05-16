@@ -1,5 +1,5 @@
-FROM python:3.7-slim.
-LABEL key="ChainBreaker"
+FROM python:3.7-slim
+#LABEL key="ChainBreaker"
 ENV PYTHONUNBUFFERED 1
 RUN apt-get update
 RUN apt-get -y install build-essential

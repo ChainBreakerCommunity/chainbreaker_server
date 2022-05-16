@@ -24,7 +24,7 @@ import time
 import geolocation 
 import folium
 import hashlib
-
+import sys
 from py2neo import Graph
 import neo4j_utils
 import nlp
@@ -74,8 +74,9 @@ app.config["ML_SERVICE_ENDPOINT"] = data["ml_service_endpoint"]
 neo4j_enable = (data["neo4j_enable"] == "true")
 graph = None
 if neo4j_enable:
+    #graph = None 
     graph = Graph(data["neo4j_endpoint"], user = data["neo4j_user"], password = data["neo4j_password"])
-
+    #print(graph)
 # Get chainbreaker website endpoint.
 chainbreaker_website_endpoint = data["chainbreaker_website_endpoint"]
 
@@ -85,6 +86,20 @@ selenium_enable = (data["selenium_enable"] == "true")
 # On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
 # When running this app on the local machine, default the port to 8000
 port = int(os.getenv('PORT', int(data["port"])))
+
+def format_string(string, no_space: bool = False) -> str:   
+    """
+    Clean String.
+    """
+    if string is None or string == None: 
+        return None
+    if no_space:
+        string = string.replace("  ","")
+    string = string.strip()
+    string = string.lower()
+    string = string.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u").replace("ñ", "n")
+    string = string.replace("\n"," ")
+    return string
 
 def getsize(obj):
     """
@@ -308,7 +323,9 @@ class Ad(db.Model):
     external_website = db.Column(db.String(100))
     reviews_website = db.Column(db.String(100))
 
+    ethnicity = db.Column(db.String(100))
     nationality = db.Column(db.String(100))
+
     age = db.Column(db.Integer)
 
     score_risk = db.Column(db.Float)
@@ -317,7 +334,7 @@ class Ad(db.Model):
                 category, first_post_date, extract_date, website, phone, country, region, 
                 city, place, latitude, longitude, zoom, email = None, 
                 verified_ad = None, prepayment = None, promoted_ad = None, external_website = None,
-                reviews_website = None, nationality = None, age = None, score_risk = None):
+                reviews_website = None, ethnicity = None, nationality = None, age = None, score_risk = None):
 
         self.data_version = data_version
         self.author = author
@@ -348,6 +365,7 @@ class Ad(db.Model):
         self.external_website = external_website
         self.reviews_website = reviews_website
 
+        self.ethnicity = ethnicity
         self.nationality = nationality
         self.age = age
         self.score_risk = score_risk
@@ -553,6 +571,7 @@ def get_sexual_ads(current_user):
     # Get ids of ads inside the dates range.
     if neo4j_enable: 
         dates_subquery = neo4j_utils.get_ads_inside_dates(graph, start_date, end_date)
+        pass
     else:
         start_date = datetime.datetime.strptime(data["start_date"], "%Y-%m-%d") 
         end_date = datetime.datetime.strptime(data["end_date"], "%Y-%m-%d")
@@ -731,6 +750,7 @@ def get_labels_count():
     if not neo4j_enable: 
         return jsonify({"message": "Sorry. Service not available at the moment."}), 400
     data = neo4j_utils.get_labels_count(graph)
+    #data = None
     return jsonify({"labels_count": data})
 
 """
@@ -747,6 +767,7 @@ def get_communities(current_user):
     data = request.values
     country = data["country"] if data["country"] != "" else None
     communities = neo4j_utils.get_communities(graph, country)
+    #communities = None
     return jsonify({"communities": communities})
 
 """
@@ -858,6 +879,17 @@ def does_ad_exists(current_user):
     return jsonify({"does_ad_exist": does_ad_exist})
 
 """
+This function returns the fields expected by the scraper.
+"""
+@app.route('/api/scraper/expected_fields', methods=["GET"])
+@token_required
+def expected_fields(current_user):
+    ALLOWED_ROLES = ["scraper", "researcher", "admin"]
+    if current_user.permission not in ALLOWED_ROLES:
+        return jsonify({'message' : "You don't have the required permissions to execute this function!"}), 400
+    return jsonify({"message": "Ad successfully uploaded!"}), 200
+
+"""
 This function allow writers to add new advertisments to ChainBreaker DB.
 """
 @app.route('/api/scraper/insert_ad', methods=['POST', "GET"])
@@ -869,9 +901,10 @@ def insert_ad(current_user):
     data = request.values
 
     print("Data received!")
-    #print("Data keys: ")
-    #print(data.keys())
-
+    #print(data)
+    print("Data keys: ")
+    print(data.keys())
+    
     # Ad data.
     data_version = app.config["DATA_VERSION"]
     author = data["author"]
@@ -886,7 +919,7 @@ def insert_ad(current_user):
     website = data["website"]
 
     # Phone.
-    phone = data["phone"]
+    phone = data["phone"] if data["phone"] != "" else None
 
     # Location.
     country = data["country"]
@@ -897,12 +930,26 @@ def insert_ad(current_user):
     longitude = float(data["longitude"]) if data["longitude"] != "" else 0
     zoom = 0
 
+    # Format string values.
+    country = format_string(country)
+    region = format_string(region)
+    city = format_string(region)
+    place = format_string(place)
+
     # Optional parameters.
+    ethnicity = data["ethnicity"] if data["ethnicity"] != "" else None
     nationality = data["nationality"] if data["nationality"] != "" else None
     age = int(data["age"]) if data["age"] != "" else None
 
+    # Format nationality.
+    ethnicity = format_string(ethnicity)
+    nationality = format_string(nationality)
+
     # Get GPS location.
     if latitude == 0 and longitude == 0 and selenium_enable:
+        logging.warning("Looking for location now...")
+        print("Looking for location now...")
+        sys.stdout.flush()
         latitude, longitude, zoom = geolocation.get_geolocation(country, region, city, place)
 
     # Optional fields.
@@ -916,10 +963,13 @@ def insert_ad(current_user):
     # Risk Score.
     risk_score = None
 
+    if(email == None and phone == None):
+        return jsonify({"message": "Phone and email can not be null at the same time!"}), 400
+
     # Create Ad in MySQL.
     new_ad = Ad(data_version, author, language, link, id_page, title, text, category, first_post_date,
                 extract_date, website, phone, country, region, city, place, latitude, longitude, zoom, 
-                email, verified_ad, prepayment, promoted_ad, external_website, reviews_website, nationality, age, 
+                email, verified_ad, prepayment, promoted_ad, external_website, reviews_website, ethnicity, nationality, age, 
                 risk_score)
 
     # Add to DB.
@@ -942,8 +992,9 @@ def insert_ad(current_user):
         db.session.add(new_comment)
 
     # Execute NLP feature extraction.
-    res = nlp.get_nlp_dicc(new_ad, Keyword, chainbreaker_website_endpoint)
-    print("NLP Return Code: ", res.status_code)
+    if country not in ["canada", "uk", "ireland"]:
+        res = nlp.get_nlp_dicc(new_ad, Keyword, chainbreaker_website_endpoint)
+        print("NLP Return Code: ", res.status_code)
     return jsonify({"message": "Ad successfully uploaded!"}), 200
     
 """

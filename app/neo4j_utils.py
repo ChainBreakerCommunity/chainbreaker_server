@@ -143,7 +143,7 @@ def get_communities(graph, country):
         "in-memory-graph-1633830502056", 
         "Ad", 
         {
-            HAS_RELATION: {
+            HAS_PHONE: {
                 orientation: "UNDIRECTED"
             }
         },

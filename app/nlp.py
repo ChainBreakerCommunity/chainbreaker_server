@@ -322,7 +322,10 @@ def get_nlp_dicc(ad, Keyword, chainbreaker_website_endpoint):
     coin_dicc = {
         "colombia": "COP", 
         "peru": "S", 
-        "mexico": "MXN"
+        "mexico": "MXN", 
+        "canada": "CAD", 
+        "uk": "GBP", 
+        "ireland": "EUR"
     }
     data["coin_type"] = coin_dicc[country]
 
