@@ -33,10 +33,10 @@ echo "$parameterA"
 echo "$parameterB"
 
 # Git commands.
-git config --global user.email "$email"
-git config --global user.name "$username"
-git config --global user.password "$token"
-git config --global credential.helper store
+#git config --global user.email "$email"
+#git config --global user.name "$username"
+#git config --global user.password "$token"
+#git config --global credential.helper store
 
 git add .
 git commit -m "$parameterA"
@@ -45,7 +45,7 @@ git push
 # Heroku commands.
 if [ $parameterB == 'yes' ]
 then
-   #echo "yees"
+   heroku login
    heroku git:clone -a chainbreaker-server-heroku
    git push heroku
 fi
