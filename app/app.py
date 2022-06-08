@@ -904,7 +904,8 @@ def insert_ad(current_user):
     #print(data)
     print("Data keys: ")
     print(data.keys())
-    
+    print(data.values)
+
     # Ad data.
     data_version = app.config["DATA_VERSION"]
     author = data["author"]

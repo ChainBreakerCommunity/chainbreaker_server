@@ -40,12 +40,14 @@ echo "$parameterB"
 
 git add .
 git commit -m "$parameterA"
-git push
 
 # Heroku commands.
 if [ $parameterB == 'yes' ]
 then
    heroku login
    heroku git:clone -a chainbreaker-server-heroku
-   git push heroku
+   #git push heroku
 fi
+
+# git push
+# git push heroku
