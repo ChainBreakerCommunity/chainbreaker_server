@@ -1,0 +1,5 @@
+---
+applications:
+ - name: chainbreaker-ibm
+   random-route: true
+   memory: 128M

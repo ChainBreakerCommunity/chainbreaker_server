@@ -1,6 +1,5 @@
 # Ignore server.
-server
-
+.env.test
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,10 +1,5 @@
 # Ignore directories
-env
-app/services
+.env.test
 
 # Ignore files.
-app/manifest.yml
-app/Procfile
-app/setup.py
-app/test.py
-app/old_code.txt
+extra/
