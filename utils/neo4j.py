@@ -49,7 +49,7 @@ def create_new_date_for_ad(id_ad: int) -> None:
     tx.create(Ad_Date) 
     graph.commit(tx)
 
-def create_ad(data: dict) -> tuple[Graph, Transaction]:
+def create_ad(data: dict):
     """
     This function recieves a graph instance and ad dictionary data 
     and generates all the neccessary operations in order to upload 
