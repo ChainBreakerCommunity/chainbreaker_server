@@ -30,4 +30,7 @@ app.register_blueprint(scraper, url_prefix = "/scraper")
 app.register_blueprint(graph, url_prefix = "/graph")
 
 if __name__ == "__main__":
-    app.run(host = "0.0.0.0", port = app.config["PORT"], debug = True)
+    try:
+        app.run(host = "0.0.0.0", port = app.config["PORT"], debug = True)
+    except Exception as e:
+        print(str(e))
