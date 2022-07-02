@@ -146,9 +146,9 @@ def insert_ad(current_user):
         db.session.add(new_comment)
 
     # Commit both databases.
-    if bool(conf_debug["DEBUG"]) == False:
-        db.session.commit()
-        graph.commit(tx)
+    #if bool(conf_debug["DEBUG"]) == False:
+    db.session.commit()
+    graph.commit(tx)
     db.session.close()
 
     return jsonify({"message": "Ad successfully uploaded!"}), 200   
