@@ -1,3 +1,4 @@
+from doctest import FAIL_FAST
 from flask import Flask, jsonify
 from routes.data import data
 from routes.user import user
@@ -8,6 +9,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 import logging
+from utils.env import get_config
+conf = get_config()
 
 app = Flask(__name__)
 app = utils.configuration.configure_app(app)
@@ -31,6 +34,6 @@ app.register_blueprint(graph, url_prefix = "/graph")
 
 if __name__ == "__main__":
     try:
-        app.run(host = "0.0.0.0", port = app.config["PORT"], debug = True)
+        app.run(host = "0.0.0.0", port = app.config["PORT"], debug = bool(conf["DEBUG"])) #bool(conf_debug["DEBUG"]))
     except Exception as e:
         print(str(e))

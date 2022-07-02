@@ -2,8 +2,8 @@ from dotenv import dotenv_values
 import os
 
 def get_config():
-    debug = dotenv_values(".env.development")
-    if debug["DEBUG"] == "TRUE":
+    conf_debug = dotenv_values(".env.development")
+    if bool(conf_debug["DEBUG"]):
         config = dotenv_values(".env")
         return config
     else:

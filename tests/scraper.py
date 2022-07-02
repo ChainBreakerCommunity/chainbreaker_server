@@ -1,9 +1,8 @@
 import unittest
 import requests 
-#from dotenv import dotenv_values
-#config = dotenv_values(".env")
-import os
-config = os.environ
+import json 
+from dotenv import dotenv_values
+config = dotenv_values(".env.test")
 
 class ScrapingTesting(unittest.TestCase):
 
@@ -36,16 +35,13 @@ class ScrapingTesting(unittest.TestCase):
         print(res["fields"])
         
     def test_insert_ad(self):
-        return
         route = "insert_ad"
-        data = {"author": "chainbreaker", 
-                
-                }
+        f = open("ad.json")
+        data = json.load(f)
+        print(data)
         url = ScrapingTesting.ENDPOINT + route
         res = requests.post(url = url, data = data, headers = self.headers)
         self.assertEqual(res.status_code, 200)
-        res = res.json()["does_ad_exist"]
-        self.assertEqual(res, 1)
 
 if __name__ == "__main__":
     unittest.main()
