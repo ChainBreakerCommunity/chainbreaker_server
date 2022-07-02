@@ -2,10 +2,10 @@ from py2neo import Graph, NodeMatcher, Node, Relationship, Transaction
 import datetime
 from typing import List
 import json
-from dotenv import dotenv_values
-config = dotenv_values(".env")
-#import os
-#config = os.environ
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
 
 graph = Graph(config["NEO4J_ENDPOINT"], user = config["NEO4J_USER"], password = config["NEO4J_PASSWORD"])
 

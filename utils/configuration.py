@@ -1,8 +1,8 @@
 # Import environment variables.
-from dotenv import dotenv_values
-config = dotenv_values(".env")
-#import os
-#config = os.environ
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
 
 def configure_app(app):
     app.config['CORS_HEADERS'] = 'Content-Type' # Set headers.

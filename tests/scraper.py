@@ -1,7 +1,9 @@
 import unittest
 import requests 
-from dotenv import dotenv_values
-config = dotenv_values(".env.test")
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
 
 class ScrapingTesting(unittest.TestCase):
 

@@ -6,10 +6,10 @@ from utils.mail import mail
 from models.user import User
 from werkzeug.security import generate_password_hash
 from templates.template import welcome
-from dotenv import dotenv_values
-config = dotenv_values(".env")
-#import os
-#config = os.environ
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
 
 def register_user(data: dict) -> bool:
 

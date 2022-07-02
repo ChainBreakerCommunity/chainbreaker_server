@@ -8,10 +8,10 @@ from utils.db import db
 from utils.auxiliar_functions import format_string
 import utils.neo4j
 
-from dotenv import dotenv_values
-config = dotenv_values(".env")
-#import os
-#config = os.environ
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
 
 
 scraper = Blueprint("scraper", __name__)

@@ -5,11 +5,11 @@ from functools import wraps
 import datetime
 import jwt
 from models.user import User
-from dotenv import dotenv_values
-config = dotenv_values(".env")
-#import os
-#config = os.environ
 
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
 
 def token_required(f):
     """

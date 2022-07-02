@@ -8,11 +8,10 @@ from models.keyword import Keyword
 from utils.ads import format_ads_reduced_to_json, format_ads_to_json
 import datetime
 
-from dotenv import dotenv_values
-config = dotenv_values(".env")
-#import os
-#config = os.environ
-
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
 
 data = Blueprint("data", __name__)
 

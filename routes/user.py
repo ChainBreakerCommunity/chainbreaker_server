@@ -11,11 +11,10 @@ import jwt
 from utils.mail import mail
 from utils.db import db
 
-from dotenv import dotenv_values
-config = dotenv_values(".env")
-#import os
-#config = os.environ
-
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
 
 user = Blueprint("user", __name__)
 
