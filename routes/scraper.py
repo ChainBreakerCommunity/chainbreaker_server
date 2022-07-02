@@ -4,11 +4,16 @@ from middlewares.token_required import token_required
 from sqlalchemy import inspect
 from models.ad import Ad
 from models.comment import Comment
-from dotenv import dotenv_values
 from utils.db import db
 from utils.auxiliar_functions import format_string
 import utils.neo4j
+
+from dotenv import dotenv_values
 config = dotenv_values(".env")
+#import os
+#config = os.environ
+
+
 scraper = Blueprint("scraper", __name__)
 
 @scraper.route("/does_ad_exists", methods = ["POST"])

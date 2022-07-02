@@ -2,7 +2,13 @@ from flask import Blueprint, render_template, request, jsonify
 from dotenv import dotenv_values
 import utils.neo4j
 from middlewares.token_required import token_required
+
+from dotenv import dotenv_values
 config = dotenv_values(".env")
+#import os
+#config = os.environ
+
+
 graph = Blueprint("graph", __name__)
 
 @graph.route("/get_labels_count", methods = ["GET"])

@@ -1,8 +1,11 @@
 
 from utils.db import db
 import datetime
-from dotenv import dotenv_values
-config = dotenv_values(".env")
+#from dotenv import dotenv_values
+#config = dotenv_values(".env")
+import os
+config = os.environ
+
 
 class User(db.Model):
     """

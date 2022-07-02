@@ -5,11 +5,15 @@ from middlewares.token_required import token_required
 from models.ad import Ad
 from models.glossary import Glossary
 from models.keyword import Keyword
-from dotenv import dotenv_values
 from utils.ads import format_ads_reduced_to_json, format_ads_to_json
 import datetime
 
+from dotenv import dotenv_values
 config = dotenv_values(".env")
+#import os
+#config = os.environ
+
+
 data = Blueprint("data", __name__)
 
 @data.route('/')

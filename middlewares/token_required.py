@@ -7,6 +7,9 @@ import jwt
 from models.user import User
 from dotenv import dotenv_values
 config = dotenv_values(".env")
+#import os
+#config = os.environ
+
 
 def token_required(f):
     """

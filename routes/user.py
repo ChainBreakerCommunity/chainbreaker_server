@@ -7,10 +7,16 @@ from templates.template import recover
 from flask_mail import Message
 import datetime
 import jwt 
-from dotenv import dotenv_values
+
 from utils.mail import mail
 from utils.db import db
+
+from dotenv import dotenv_values
 config = dotenv_values(".env")
+#import os
+#config = os.environ
+
+
 user = Blueprint("user", __name__)
 
 @user.route('/', methods = ["GET"])
