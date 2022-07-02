@@ -7,11 +7,8 @@ from models.glossary import Glossary
 from models.keyword import Keyword
 from utils.ads import format_ads_reduced_to_json, format_ads_to_json
 import datetime
-
-#from dotenv import dotenv_values
-#config = dotenv_values(".env")
-import os
-config = os.environ
+from utils.env import get_config
+config = get_config()
 
 data = Blueprint("data", __name__)
 
@@ -63,6 +60,9 @@ def get_sexual_ads(current_user):
         .limit(config["MAX_ADS_PER_REQUEST"]) \
         .all()
 
+    # Close session.
+    db.session.close()
+
     if len(ads) == 0:
         return jsonify({"message": "No results were found for your search"}), 401
     else:
@@ -100,6 +100,8 @@ def get_sexual_ads_by_id(current_user):
             .all()
         output = format_ads_reduced_to_json(ads)
 
+    # Close session.
+    db.session.close()
     return jsonify({"ads": output}), 200
 
 @data.route('/get_glossary', methods=['POST', "GET"])
@@ -123,6 +125,7 @@ def get_glossary(current_user):
         term_data["term"] = term.term 
         term_data["definition"] = term.definition 
         output.append(term_data)
+    
     return jsonify({"glossary": output}), 200
 
 @data.route('/get_keywords', methods=['POST', "GET"])
@@ -175,9 +178,11 @@ def search_phone(current_user):
         current_user.successful_phone_search += 1
         current_user.available_phone_calls -= 1
         db.session.commit()
+        db.session.close()
         output, last_id = format_ads_to_json(ads, secure = secure)
         return jsonify({"ads": output}), 200
     else:
+        db.session.close()
         return jsonify({"message": "No results were found for your search"}), 404
 
 @data.route("/get_phone_score_risk", methods = ["POST", "GET"])
@@ -196,6 +201,7 @@ def get_phone_score_risk(current_user):
         .filter(Ad.phone == phone) \
         .first()
 
+    db.session()
     if first_ad == None:
         return jsonify({"message": "Phone not in database."}), 404
     else:

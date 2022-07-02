@@ -12,7 +12,7 @@ import logging
 app = Flask(__name__)
 app = utils.configuration.configure_app(app)
 cors = CORS(app)
-db = SQLAlchemy(app)
+db = SQLAlchemy(app, session_options = {"autocommit": True})
 mail = Mail(app)
 
 @app.route('/')

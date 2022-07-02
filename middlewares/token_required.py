@@ -5,11 +5,9 @@ from functools import wraps
 import datetime
 import jwt
 from models.user import User
-
-#from dotenv import dotenv_values
-#config = dotenv_values(".env")
-import os
-config = os.environ
+from dotenv import dotenv_values
+from utils.env import get_config
+config = get_config()
 
 def token_required(f):
     """
@@ -28,7 +26,7 @@ def token_required(f):
             current_user.api_calls += 1
             current_user.last_api_call_date = datetime.datetime.now()
             db.session.commit()
-        except:
-            return jsonify({'message' : 'Token is invalid!'}), 401
+        except Exception as e:
+            return jsonify({'message' : str(e)}), 401
         return f(current_user, *args, **kwargs)
     return decorated

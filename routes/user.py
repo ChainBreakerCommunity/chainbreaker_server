@@ -10,11 +10,8 @@ import jwt
 
 from utils.mail import mail
 from utils.db import db
-
-#from dotenv import dotenv_values
-#config = dotenv_values(".env")
-import os
-config = os.environ
+from utils.env import get_config
+config = get_config()
 
 user = Blueprint("user", __name__)
 
@@ -45,6 +42,7 @@ def login():
         token = jwt.encode({'id_user' : user.id_user, "email": user.email, "permission": user.permission, "expiresIn": minutes}, config['SECRET_KEY'], algorithm = "HS256")
         return jsonify({'name': user.name, 'email': user.email, 'permission': user.permission, 'token' : token}), 200
     print("could not verified")
+    db.session.close()
     return make_response('Could not verify', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
 
 @user.route('/register', methods = ["PUT"])

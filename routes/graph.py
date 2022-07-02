@@ -2,11 +2,8 @@ from flask import Blueprint, render_template, request, jsonify
 from dotenv import dotenv_values
 import utils.neo4j
 from middlewares.token_required import token_required
-
-#from dotenv import dotenv_values
-#config = dotenv_values(".env")
-import os
-config = os.environ
+from utils.env import get_config
+config = get_config()
 
 
 graph = Blueprint("graph", __name__)

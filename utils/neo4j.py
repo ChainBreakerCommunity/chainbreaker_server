@@ -2,10 +2,8 @@ from py2neo import Graph, NodeMatcher, Node, Relationship, Transaction
 import datetime
 from typing import List
 import json
-#from dotenv import dotenv_values
-#config = dotenv_values(".env")
-import os
-config = os.environ
+from utils.env import get_config
+config = get_config()
 
 graph = Graph(config["NEO4J_ENDPOINT"], user = config["NEO4J_USER"], password = config["NEO4J_PASSWORD"])
 
@@ -45,8 +43,8 @@ def create_new_date_for_ad(id_ad: int) -> None:
     today = datetime.datetime.today()
     datem = datetime.datetime(today.year, today.month, today.day)
 
-    Ad = get_node(graph, "Ad", id_ad = id_ad)
-    Date = get_node(graph, "Date", date = datem)
+    Ad = get_node("Ad", id_ad = id_ad)
+    Date = get_node("Date", date = datem)
     Ad_Date = Relationship(Ad, "HAS_DATE", Date)
     tx = graph.begin()
     tx.create(Ad_Date) 
@@ -89,14 +87,14 @@ def create_ad(data: dict):
     Ad = Node("Ad", **params)
 
     # Create/Get linked Nodes.    
-    Date = get_node(graph, "Date", date = params["date"])
-    Language = get_node(graph, "Language", language = params["language"]) 
-    Website = get_node(graph, "Website", name = params["website"])
-    Category = get_node(graph, "Category", name = params["category"])
-    Phone = get_node(graph, "Phone", number = params["phone"])
-    Country = get_node(graph, "Country", name = params["country"])
-    Region = get_node(graph, "Region", name = params["region"])
-    City = get_node(graph, "City", name = params["city"])
+    Date = get_node("Date", date = params["date"])
+    Language = get_node("Language", language = params["language"]) 
+    Website = get_node("Website", name = params["website"])
+    Category = get_node("Category", name = params["category"])
+    Phone = get_node("Phone", number = params["phone"])
+    Country = get_node("Country", name = params["country"])
+    Region = get_node("Region", name = params["region"])
+    City = get_node("City", name = params["city"])
      
     # Create Relantionships.
     Ad_Language = Relationship(Ad, "HAS_LANGUAGE", Language)
@@ -121,12 +119,12 @@ def create_ad(data: dict):
     tx.create(Ad_City)
     
     if data["external_website"] != "":
-        ExternalWebsite = get_node(graph, "ExternalWebsite", name = data["external_website"])
+        ExternalWebsite = get_node("ExternalWebsite", name = data["external_website"])
         Ad_ExternalWebsite = Relationship(Ad, "HAS_EXTERNAL_WEBSITE", ExternalWebsite)
         tx.create(ExternalWebsite)
         tx.create(Ad_ExternalWebsite)
     if data["email"] != "":
-        Email = get_node(graph, "Email", name = data["email"])
+        Email = get_node("Email", name = data["email"])
         Ad_Email = Relationship(Ad, "HAS_EMAIL", Email)
         tx.create(Email)
         tx.create(Ad_Email)

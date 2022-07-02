@@ -7,11 +7,8 @@ from models.comment import Comment
 from utils.db import db
 from utils.auxiliar_functions import format_string
 import utils.neo4j
-
-#from dotenv import dotenv_values
-#config = dotenv_values(".env")
-import os
-config = os.environ
+from utils.env import get_config
+config = get_config()
 
 
 scraper = Blueprint("scraper", __name__)
@@ -37,6 +34,7 @@ def does_ad_exists(current_user):
           .first()
     if ads == None:
         does_ad_exist = 0
+    db.session.close()
     return jsonify({"does_ad_exist": does_ad_exist})
 
 @scraper.route('/expected_fields', methods=["GET"])
@@ -149,5 +147,6 @@ def insert_ad(current_user):
     # Commit both databases.
     db.session.commit()
     graph.commit(tx)
+    db.session.close()
 
     return jsonify({"message": "Ad successfully uploaded!"}), 200   
