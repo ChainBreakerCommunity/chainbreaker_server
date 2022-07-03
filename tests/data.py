@@ -17,7 +17,6 @@ class DataTesting(unittest.TestCase):
         self.headers = {"x-access-token": token}
 
     def test_get_sexual_ads(self):
-
         # Get sexual ads.
         route = "get_sexual_ads"
         data = {"language": "english", "website": "leolist", "start_date": "0001-01-01", "end_date": "9999-01-01"}
@@ -27,7 +26,6 @@ class DataTesting(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
 
     def test_get_sexual_ads_by_id(self):
-
         # Get sexual ads by id.
         route = "get_sexual_ads_by_id"
         data = {"ads_ids": [0, 1, 2, 3], "reduced_version": "0"}
@@ -52,14 +50,6 @@ class DataTesting(unittest.TestCase):
         #print(res.text)
         self.assertEqual(res.status_code, 200)
 
-    def test_search_phone(self):
-        route = "search_phone"
-        data = {"phone": config["PHONE"]}
-        url = DataTesting.ENDPOINT + route
-        res = requests.post(url = url, data = data, headers = self.headers)
-        #print(res.text)
-        self.assertEqual(res.status_code, 200)
-
     def test_get_phone_score_risk(self):
         route = "get_phone_score_risk"
         data = {"phone": config["PHONE"]}
@@ -68,5 +58,14 @@ class DataTesting(unittest.TestCase):
         #print(res.text)
         self.assertEqual(res.status_code, 200)
 
+    def test_search_phone(self):
+        route = "search_phone"
+        data = {"phone": config["PHONE"]}
+        url = DataTesting.ENDPOINT + route
+        res = requests.post(url = url, data = data, headers = self.headers)
+        #print(res.text)
+        self.assertEqual(res.status_code, 200)
+
+  
 if __name__ == "__main__":
     unittest.main()

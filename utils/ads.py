@@ -1,3 +1,4 @@
+from models.ad import Ad
 
 def textToHash(text):
     import hashlib
@@ -38,6 +39,7 @@ def format_ads_to_json(ads, secure = False):
     """
     last_id = 0
     output = list()
+
     for ad in ads: 
         ad_data = {}
 

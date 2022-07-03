@@ -9,9 +9,6 @@ from utils.auxiliar_functions import format_string
 import utils.neo4j
 from utils.env import get_config
 config = get_config()
-from dotenv import dotenv_values
-conf_debug = dotenv_values(".env.development")
-
 scraper = Blueprint("scraper", __name__)
 
 @scraper.route("/does_ad_exists", methods = ["POST"])
@@ -146,9 +143,9 @@ def insert_ad(current_user):
         db.session.add(new_comment)
 
     # Commit both databases.
-    #if bool(conf_debug["DEBUG"]) == False:
-    db.session.commit()
-    graph.commit(tx)
-    db.session.close()
+    if config["DEBUG"] == "FALSE":
+        db.session.commit()
+        graph.commit(tx)
+        db.session.close()
 
     return jsonify({"message": "Ad successfully uploaded!"}), 200   

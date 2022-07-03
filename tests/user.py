@@ -46,5 +46,14 @@ class UserTesting(unittest.TestCase):
         data = res.json()
         self.assertEqual(res.status_code, 200)
 
+    def test_delete_user(self):
+        return
+        route = "delete_user"
+        data = {"email": config["TEST_EMAIL"]}
+        url = UserTesting.ENDPOINT + route
+        res = requests.put(url = url, data = data)
+        data = res.json()
+        self.assertEqual(res.status_code, 200)
+
 if __name__ == "__main__":
     unittest.main()

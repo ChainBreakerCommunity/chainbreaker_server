@@ -178,8 +178,8 @@ def search_phone(current_user):
         current_user.successful_phone_search += 1
         current_user.available_phone_calls -= 1
         db.session.commit()
-        db.session.close()
         output, last_id = format_ads_to_json(ads, secure = secure)
+        db.session.close()
         return jsonify({"ads": output}), 200
     else:
         db.session.close()

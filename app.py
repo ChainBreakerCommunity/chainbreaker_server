@@ -1,5 +1,4 @@
-from doctest import FAIL_FAST
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_file, request
 from routes.data import data
 from routes.user import user
 from routes.scraper import scraper
@@ -25,6 +24,11 @@ def root():
 @app.route("/status", methods = ["GET"])
 def status():
     return jsonify({'status' : 200})
+
+@app.route("/get_logging", methods=["POST"])
+def get_logging():
+    data = request.values
+    return send_file("./logger/{route}.log".format(route = data["route"])), 200
 
 # Register routes.
 app.register_blueprint(data, url_prefix = "/data")

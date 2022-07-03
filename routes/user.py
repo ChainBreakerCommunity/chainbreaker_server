@@ -7,11 +7,14 @@ from templates.template import recover
 from flask_mail import Message
 import datetime
 import jwt 
-
 from utils.mail import mail
 from utils.db import db
+
 from utils.env import get_config
 config = get_config()
+
+from logger.logger import get_logger
+logger = get_logger(__name__, level = "DEBUG", stream = True)
 
 user = Blueprint("user", __name__)
 
@@ -63,7 +66,7 @@ def delete_user():
         db.session.commit()
         return jsonify({'message' : 'User has been deleted sucessfully.'}), 200
     except Exception as e:
-        print(str(e))
+        logger.exception(str(e))
         return jsonify({"message": "User not found"}), 404
 
 @user.route('/create_user', methods = ["PUT"])
