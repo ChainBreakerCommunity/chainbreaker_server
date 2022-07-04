@@ -49,6 +49,7 @@ class GraphTesting(unittest.TestCase):
         route = "get_last_ad"
         url = GraphTesting.ENDPOINT + route
         res = requests.get(url = url)
+        print(res.text)
         self.assertEqual(res.status_code, 200)
         res = res.json()["node"]
         

@@ -6,5 +6,5 @@ RUN apt-get -y install default-libmysqlclient-dev
 RUN apt-get -y install nano
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements
-COPY . .
-CMD ["python", "-m", "flask", "run", "--host:0.0.0.0"]
+COPY ./ ./server
+CMD ["python", "app.py"]

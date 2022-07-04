@@ -68,7 +68,6 @@ def create_ad(data: dict):
                 "language": data["language"], 
                 "link": data["link"], 
                 "category": data["category"], 
-                "phone": int(data["phone"]), 
                 "title": data["title"], 
                 "text": data["text"], 
                 "country": data["country"], 
@@ -78,6 +77,9 @@ def create_ad(data: dict):
                 "date": datetime.datetime.strptime(data["first_post_date"], "%Y-%m-%d")
             }
 
+    # Previously, we guarantee that at least one of the following values is not None!
+    if data["phone"] != "":
+        params["phone"] = data["phone"]
     if data["external_website"] != "": 
         params["external_website"] = data["external_website"]
     if data["email"] != "":
@@ -91,7 +93,6 @@ def create_ad(data: dict):
     Language = get_node("Language", language = params["language"]) 
     Website = get_node("Website", name = params["website"])
     Category = get_node("Category", name = params["category"])
-    Phone = get_node("Phone", number = params["phone"])
     Country = get_node("Country", name = params["country"])
     Region = get_node("Region", name = params["region"])
     City = get_node("City", name = params["city"])
@@ -101,7 +102,6 @@ def create_ad(data: dict):
     Ad_Date = Relationship(Ad, "HAS_DATE", Date)
     Ad_Website = Relationship(Ad, "HAS_WEBSITE", Website)
     Ad_Category = Relationship(Ad, "HAS_CATEGORY", Category)
-    Ad_Phone = Relationship(Ad, "HAS_PHONE", Phone)
     Ad_Country = Relationship(Ad, "HAS_COUNTRY", Country)
     Ad_Region = Relationship(Ad, "HAS_REGION", Region)
     Ad_City = Relationship(Ad, "HAS_CITY", City)
@@ -113,16 +113,22 @@ def create_ad(data: dict):
     tx.create(Ad_Date)
     tx.create(Ad_Website)
     tx.create(Ad_Category)
-    tx.create(Ad_Phone)
     tx.create(Ad_Country)
     tx.create(Ad_Region)
     tx.create(Ad_City)
     
+    if data["phone"] != "":
+        Phone = get_node("Phone", number = params["phone"])
+        Ad_Phone = Relationship(Ad, "HAS_PHONE", Phone)
+        tx.create(Phone)
+        tx.create(Ad_Phone)
+
     if data["external_website"] != "":
         ExternalWebsite = get_node("ExternalWebsite", name = data["external_website"])
         Ad_ExternalWebsite = Relationship(Ad, "HAS_EXTERNAL_WEBSITE", ExternalWebsite)
         tx.create(ExternalWebsite)
         tx.create(Ad_ExternalWebsite)
+
     if data["email"] != "":
         Email = get_node("Email", name = data["email"])
         Ad_Email = Relationship(Ad, "HAS_EMAIL", Email)

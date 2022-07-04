@@ -116,8 +116,9 @@ def insert_ad(current_user):
     # Risk Score.
     risk_score = None
 
-    if(email == None and phone == None):
-        return jsonify({"message": "Phone and email can not be null at the same time!"}), 400
+    # This conditions is checked 
+    if(email == None and phone == None and external_website == None):
+        return jsonify({"message": "Phone, email and external website can not be null at the same time!"}), 400
 
     # Create Ad in MySQL.
     new_ad = Ad(data_version, author, language, link, id_page, title, text, category, first_post_date,
