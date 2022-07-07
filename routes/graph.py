@@ -21,7 +21,7 @@ def get_labels_count():
 def get_communities():
     """Returns the communities identified using community detection algorithm
     """
-    if not config["NEO4J_ENABLE"]: 
+    if config["NEO4J_ENABLE"] == "FALSE": 
         return jsonify({"message": "Sorry. Service not available at the moment."}), 400
     #ALLOWED_ROLES = ["super_reader", "researcher", "admin"]
     #if current_user.permission not in ALLOWED_ROLES:

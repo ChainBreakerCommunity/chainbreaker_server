@@ -1,4 +1,5 @@
 from models.ad import Ad
+from typing import List 
 
 def textToHash(text):
     import hashlib
@@ -33,7 +34,7 @@ def format_ads_reduced_to_json(ads):
 
     return output
 
-def format_ads_to_json(ads, secure = False):
+def format_ads_to_json(ads: List[Ad], secure = False):
     """
     Format Ads Data to json.
     """
@@ -56,6 +57,9 @@ def format_ads_to_json(ads, secure = False):
         ad_data["first_post_date"] = ad.first_post_date
         ad_data["extract_date"] = ad.extract_date 
         ad_data["website"] = ad.website 
+
+        # Ethnicity data.
+        ad_data["ethnicity"] = ad.ethnicity
 
         # Phone data.
         ad_data["phone"] = textToHash(ad.phone) if (not secure and ad.phone != None) else ad.phone

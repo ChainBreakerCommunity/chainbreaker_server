@@ -16,7 +16,7 @@ data = Blueprint("data", __name__)
 def index():
     return jsonify({"message": "DATA ROUTE"})
 
-@data.route('/get_sexual_ads', methods=['POST', "GET"])
+@data.route('/get_sexual_ads', methods=['POST'])
 @token_required
 def get_sexual_ads(current_user):
     SECURE_ROLES = ["client", "researcher", "admin"]
