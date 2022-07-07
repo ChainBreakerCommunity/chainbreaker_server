@@ -8,14 +8,15 @@ class ScrapingTesting(unittest.TestCase):
 
     ENDPOINT = "http://localhost:" + config["PORT"] + "/scraper/"
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         route = "login"
         data = {"email": config["EMAIL"], "password": config["PASSWORD"], "expiration": "0"}
         url = "http://localhost:" + config["PORT"] + "/user/" + route
         res = requests.post(url = url, data = data)
         data = res.json()
         token = data["token"]
-        self.headers = {"x-access-token": token}
+        cls.headers = {"x-access-token": token}
 
     def test_does_ad_exists(self):
         route = "does_ad_exists"
